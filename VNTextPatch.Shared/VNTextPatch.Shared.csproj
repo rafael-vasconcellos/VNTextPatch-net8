@@ -89,7 +89,7 @@
     <Compile Include="Scripts\KaguyaScript.cs" />
     <Compile Include="Scripts\Kirikiri\KirikiriDescrambler.cs" />
     <Compile Include="Scripts\Kirikiri\KirikiriKsScript.cs" />
-    <Compile Include="Scripts\Kirikiri\KirikiriScnScript.cs" />
+    <!-- <Compile Include="Scripts\Kirikiri\KirikiriScnScript.cs" /> -->
     <Compile Include="Scripts\Kirikiri\KirikiriSocScript.cs" />
     <Compile Include="Scripts\Kirikiri\KirikiriTjsScript.cs" />
     <Compile Include="Scripts\Majiro\MajiroAssembler.cs" />
@@ -177,12 +177,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup>
+  <!-- <ItemGroup>
     <ProjectReference Include="..\external\FreeMote\FreeMote.Psb\FreeMote.Psb.csproj">
       <Project>{c0b2c2ff-d8f4-497e-8312-c2af1bb6e7f7}</Project>
       <Name>FreeMote.Psb</Name>
     </ProjectReference>
-  </ItemGroup>
+  </ItemGroup> -->
   <ItemGroup>
     <PackageReference Include="Google.Apis.Sheets.v4">
       <Version>1.49.0.2168</Version>
