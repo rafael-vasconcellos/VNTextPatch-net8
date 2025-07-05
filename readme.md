@@ -5,3 +5,6 @@ libs to replace:
     - System.Drawing
     - System.Windows.Forms
     - System.Configuration
+
+
+.sln file: manages multiple custom builds
