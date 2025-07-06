@@ -1,9 +1,8 @@
-libs to replace:  
-    - System.Configuration -> Microsoft.Extensions.Configuration  
-    - System.Data  
-    - System.Data.DataSetExtensions  
-    <br>
-    - System.Drawing  
-    - System.Windows.Forms
+## Changelog
++ upgraded project to latest LTS .NET version
++ **Removed** suport for KiriKiri SCN Scripts because **FreeMote** uses net4.8
+
+### replaced libs
+System.Configuration -> Microsoft.Extensions.Configuration  
 
 
