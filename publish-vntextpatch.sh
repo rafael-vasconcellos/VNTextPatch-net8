@@ -2,7 +2,7 @@
 # filepath: /workspaces/VNTextPatch-wasm/publish-vntextpatch.sh
 
 # Use: ./publish-vntextpatch.sh [plataforma]
-# Example: ./publish-vntextpatch.sh linux-x64
+# Example: ./publish-vntextpatch.sh linux-x64, or browser-wasm, wasm, wasm32
 # If none platform is passed, the default will be "win-x64"
 
 # Desativa telemetria do .NET
@@ -17,8 +17,9 @@ echo "📦 Publishing for platform: $PLATFORM"
 find . -type d -name bin -exec rm -rf {} +
 find . -type d -name obj -exec rm -rf {} +
 
+SELF_CONTAINED=$( [ "$PLATFORM" != "browser-wasm" ] && echo "--self-contained true" || echo "" )
 dotnet publish VNTextPatch/VNTextPatch.csproj \
   -c Release \
   -r "$PLATFORM" \
-  --self-contained true \
-  -o "Build/VNTextPatch-$PLATFORM"
+  -o "Build/VNTextPatch-$PLATFORM" \
+  $SELF_CONTAINED
