@@ -1,5 +1,7 @@
 ﻿using System;
-using System.Configuration;
+using VNTextPatch.Shared.Util;
+using Microsoft.Extensions.Configuration;
+//using System.Configuration;
 
 namespace VNTextPatch.Shared.Util
 {
@@ -8,7 +10,7 @@ namespace VNTextPatch.Shared.Util
         public static readonly MonospaceWordWrapper Default = new MonospaceWordWrapper();
 
         private MonospaceWordWrapper()
-            : this(Convert.ToInt32(ConfigurationManager.AppSettings["MonospaceCharactersPerLine"]))
+            : this(Convert.ToInt32(AppSettings.Configuration["MonospaceCharactersPerLine"]))
         {
         }
 

@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
+//using System.Configuration;
+using VNTextPatch.Shared.Util;
+using Microsoft.Extensions.Configuration;
+
 
 namespace VNTextPatch.Shared.Util
 {
@@ -8,19 +11,20 @@ namespace VNTextPatch.Shared.Util
     {
         public static readonly ProportionalWordWrapper Default =
             new ProportionalWordWrapper(
-                ConfigurationManager.AppSettings["ProportionalFontName"],
-                Convert.ToInt32(ConfigurationManager.AppSettings["ProportionalFontSize"]),
-                Convert.ToBoolean(ConfigurationManager.AppSettings["ProportionalFontBold"]),
-                Convert.ToInt32(ConfigurationManager.AppSettings["ProportionalLineWidth"])
+                AppSettings.Configuration["ProportionalFontName"],
+                AppSettings.Configuration.GetValue<int>("ProportionalFontSize"),
+                AppSettings.Configuration.GetValue<bool>("ProportionalFontBold"),
+                AppSettings.Configuration.GetValue<int>("ProportionalLineWidth")
             );
 
         public static readonly ProportionalWordWrapper Secondary =
             new ProportionalWordWrapper(
-                ConfigurationManager.AppSettings["ProportionalFontName"],
-                Convert.ToInt32(ConfigurationManager.AppSettings["ProportionalFontSize"]),
-                Convert.ToBoolean(ConfigurationManager.AppSettings["ProportionalFontBold"]),
-                Convert.ToInt32(ConfigurationManager.AppSettings["SecondaryProportionalLineWidth"])
+                AppSettings.Configuration["ProportionalFontName"],
+                AppSettings.Configuration.GetValue<int>("ProportionalFontSize"),
+                AppSettings.Configuration.GetValue<bool>("ProportionalFontBold"),
+                AppSettings.Configuration.GetValue<int>("SecondaryProportionalLineWidth")
             );
+
 
         private readonly IntPtr _dc;
         private readonly IntPtr _font;

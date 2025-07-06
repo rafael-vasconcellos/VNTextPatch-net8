@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
+//using System.Configuration;
+using VNTextPatch.Shared.Util;
+using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -73,7 +75,7 @@ namespace VNTextPatch.Shared.Scripts
 
         private static BaseClientService.Initializer GetApiKeyInitializer()
         {
-            string apiKey = ConfigurationManager.AppSettings["GoogleApiKey"];
+            string apiKey = AppSettings.Configuration["GoogleApiKey"];
             if (string.IsNullOrEmpty(apiKey))
                 return null;
 
