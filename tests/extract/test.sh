@@ -1,0 +1,1 @@
+dotnet Build/VNTextPatch/VNTextPatch.dll extractlocal tests/extract/input tests/extract/output

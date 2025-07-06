@@ -311,7 +311,7 @@ namespace VNTextPatch
                         GlobalVariables.jisStrings.Add(arg.Substring(2));
                         continue;
                     }
-                    Match match = Regex.Match(arg, @"--(?<name>\w+)=(?<value>.*)$");
+                    Match match = Regex.Match(arg, @"--(?<name>\w+)=(?<value>.*)$"); //--nome=valor
                     if (!match.Success)
                     {
                         unnamedArgsList.Add(arg);
