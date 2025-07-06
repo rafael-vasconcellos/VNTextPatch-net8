@@ -1,5 +1,5 @@
 libs to replace:
-    - System.Configuration
+    - System.Configuration -> Microsoft.Extensions.Configuration
     - System.Data
     - System.Data.DataSetExtensions
 
