@@ -51,7 +51,7 @@ namespace VNTextPatch.Shared.Util
 
             StringBuilder cleanedText = new StringBuilder();
             SortedList<int, int> positionMapping = new SortedList<int, int>();
-            foreach ((Range range, bool isControlCode) in StringUtil.GetMatchingAndSurroundingRanges(text, controlCodePattern))
+            foreach ((VNTextPatch.Shared.Scripts.Range range, bool isControlCode) in StringUtil.GetMatchingAndSurroundingRanges(text, controlCodePattern))
             {
                 if (isControlCode)
                     continue;

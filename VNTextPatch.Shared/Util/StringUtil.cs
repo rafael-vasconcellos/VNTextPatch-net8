@@ -145,22 +145,22 @@ namespace VNTextPatch.Shared.Util
             return result.ToString();
         }
 
-        public static IEnumerable<(Range, bool)> GetMatchingAndSurroundingRanges(string input, Regex regex)
+        public static IEnumerable<(VNTextPatch.Shared.Scripts.Range, bool)> GetMatchingAndSurroundingRanges(string input, Regex regex)
         {
             int startPos = 0;
             foreach (Match match in regex.Matches(input))
             {
                 if (startPos < match.Index)
-                    yield return (new Range(startPos, match.Index - startPos, ScriptStringType.Message), false);
+                    yield return (new VNTextPatch.Shared.Scripts.Range(startPos, match.Index - startPos, ScriptStringType.Message), false);
 
                 if (match.Length > 0)
-                    yield return (new Range(match.Index, match.Length, ScriptStringType.Message), true);
+                    yield return (new VNTextPatch.Shared.Scripts.Range(match.Index, match.Length, ScriptStringType.Message), true);
 
                 startPos = match.Index + match.Length;
             }
 
             if (startPos < input.Length)
-                yield return (new Range(startPos, input.Length - startPos, ScriptStringType.Message), false);
+                yield return (new VNTextPatch.Shared.Scripts.Range(startPos, input.Length - startPos, ScriptStringType.Message), false);
         }
 
         public static IEnumerable<(string, Match)> GetMatchingAndSurroundingTexts(string input, Regex regex)
