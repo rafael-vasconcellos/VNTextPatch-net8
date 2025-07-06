@@ -1,38 +1,53 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
+  
+  <!-- Configurações específicas para WebAssembly -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'browser-wasm'">
+    <UseAppHost>false</UseAppHost>
+    <WasmGenerateRunV8Script>false</WasmGenerateRunV8Script>
+    <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
+    <WasmEmitSymbolMap>false</WasmEmitSymbolMap>
+    <WasmBuildOnlyAfterPublish>false</WasmBuildOnlyAfterPublish>
+    <WasmNativeStrip>true</WasmNativeStrip>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmSingleFileBundle>true</WasmSingleFileBundle>
+    <WasmEnableWebServer>true</WasmEnableWebServer>
+  </PropertyGroup>
+  
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
     <OutputPath>..\Build\Debug\</OutputPath>
   </PropertyGroup>
+  
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
     <OutputPath>..\Build\Release\</OutputPath>
   </PropertyGroup>
-
-  <!-- <ItemGroup>
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup> -->
+  
   <ItemGroup>
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
   </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\VNTextPatch.Shared\VNTextPatch.Shared.csproj">
     </ProjectReference>
   </ItemGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
   </ItemGroup>
-
   
+  <!-- Pacotes necessários para WebAssembly -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'browser-wasm'">
+    <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.10" />
+  </ItemGroup>
 </Project>
