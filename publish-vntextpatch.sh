@@ -17,9 +17,24 @@ echo "📦 Publishing for platform: $PLATFORM"
 find . -type d -name bin -exec rm -rf {} +
 find . -type d -name obj -exec rm -rf {} +
 
+# Define se será self-contained (exceto para browser-wasm)
 SELF_CONTAINED=$( [ "$PLATFORM" != "browser-wasm" ] && echo "--self-contained true" || echo "" )
+
+# Define diretório de saída
+OUTPUT_DIR="Build/VNTextPatch-$PLATFORM"
+
+# Publicação
 dotnet publish VNTextPatch/VNTextPatch.csproj \
   -c Release \
   -r "$PLATFORM" \
-  -o "Build/VNTextPatch-$PLATFORM" \
+  -o "$OUTPUT_DIR" \
   $SELF_CONTAINED
+
+# Compacta a pasta de saída em um .zip
+ZIP_FILE="${OUTPUT_DIR}.zip"
+echo "📦 Compactando $OUTPUT_DIR para $ZIP_FILE..."
+cd Build
+zip -r "../$(basename "$ZIP_FILE")" "$(basename "$OUTPUT_DIR")"
+cd ..
+
+echo "✅ Publicação e compactação concluídas: $ZIP_FILE"
