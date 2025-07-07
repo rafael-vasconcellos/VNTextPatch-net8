@@ -19,6 +19,7 @@
     <WasmBuildNative>true</WasmBuildNative>
     <WasmSingleFileBundle>true</WasmSingleFileBundle>
     <WasmEnableWebServer>true</WasmEnableWebServer>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
