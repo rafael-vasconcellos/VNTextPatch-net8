@@ -5,4 +5,4 @@ Build
 input
 output
 MyAppBundle
-VNTextPatch-browser-wasm.zip
+sjis.charmap/*.json
