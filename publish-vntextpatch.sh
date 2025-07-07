@@ -27,14 +27,14 @@ OUTPUT_DIR="Build/VNTextPatch-$PLATFORM"
 dotnet publish VNTextPatch/VNTextPatch.csproj \
   -c Release \
   -r "$PLATFORM" \
-  -o "$OUTPUT_DIR" \
+  #-o "$OUTPUT_DIR" \
   $SELF_CONTAINED
 
 # Compacta a pasta de saída em um .zip
-ZIP_FILE="${OUTPUT_DIR}.zip"
-echo "📦 Compactando $OUTPUT_DIR para $ZIP_FILE..."
-cd Build
-zip -r "../$(basename "$ZIP_FILE")" "$(basename "$OUTPUT_DIR")"
-cd ..
+#ZIP_FILE="${OUTPUT_DIR}.zip"
+#echo "📦 Compactando $OUTPUT_DIR para $ZIP_FILE..."
+#cd Build
+#zip -r "../$(basename "$ZIP_FILE")" "$(basename "$OUTPUT_DIR")"
+#cd ..
 
-echo "✅ Publicação e compactação concluídas: $ZIP_FILE"
+#echo "✅ Publicação e compactação concluídas: $ZIP_FILE"

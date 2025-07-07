@@ -8,9 +8,11 @@
   
   <!-- Configurações específicas para WebAssembly -->
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'browser-wasm'">
+    <WasmAppDir>$(OutputPath)MyAppBundle</WasmAppDir>
+
     <UseAppHost>false</UseAppHost>
     <WasmGenerateRunV8Script>false</WasmGenerateRunV8Script>
-    <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
+    <!-- <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath> -->
     <WasmEmitSymbolMap>false</WasmEmitSymbolMap>
     <WasmBuildOnlyAfterPublish>false</WasmBuildOnlyAfterPublish>
     <WasmNativeStrip>true</WasmNativeStrip>
