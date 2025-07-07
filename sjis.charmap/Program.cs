@@ -3,15 +3,12 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.IO;
+using System.Text.Encodings.Web; // Adicione este using para JavaScriptEncoder
 
 
 class Program
 {
-    public static string[] jisChars =
-        [
-            "あ", "い", "う", "え", "お",
-            "日", "本", "語", "漢", "字"
-        ];
+    public static char[] jisChars = GetJisChars();
 
     static void Main()
     {
@@ -24,11 +21,12 @@ class Program
         {
             try
             {
-                byte[] sjisBytes = shiftJisEncoding.GetBytes(ch);
+                byte[] sjisBytes = shiftJisEncoding.GetBytes(ch.ToString());
                 string sjisHex = BytesToHex(sjisBytes);
+                string charAsString = ch.ToString();
 
-                bytesToChar[sjisHex] = ch;
-                charToBytes[ch] = sjisHex;
+                bytesToChar[sjisHex] = charAsString;
+                charToBytes[charAsString] = sjisHex;
             }
             catch
             {
@@ -36,7 +34,11 @@ class Program
             }
         }
 
-        var options = new JsonSerializerOptions { WriteIndented = true };
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
         File.WriteAllText("bytesToChar.json", JsonSerializer.Serialize(bytesToChar, options));
         File.WriteAllText("charToBytes.json", JsonSerializer.Serialize(charToBytes, options));
     }
@@ -47,6 +49,14 @@ class Program
         foreach (var b in bytes)
             sb.Append(b.ToString("X2")); // formato hexadecimal com 2 dígitos
         return sb.ToString();
+    }
+
+    public static char[] GetJisChars()
+    {
+        string originalContent = File.ReadAllText("chars.txt");
+        string cleanContent = new string(originalContent.Where(c => !Char.IsWhiteSpace(c)).ToArray());
+        char[] splited = cleanContent.ToCharArray();
+        return splited;
     }
 
     static string DictionaryToString<TKey, TValue>(Dictionary<TKey, TValue> dict)
