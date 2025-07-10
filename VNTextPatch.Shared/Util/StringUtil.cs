@@ -9,11 +9,18 @@ namespace VNTextPatch.Shared.Util
 {
     public static class StringUtil
     {
-        public static readonly Encoding SjisEncoding = Encoding.GetEncoding(932, EncoderFallback.ExceptionFallback, DecoderFallback.ReplacementFallback);
+        public static readonly Encoding SjisEncoding = GetEncoding();
         public static readonly SjisTunnelEncoding SjisTunnelEncoding = new SjisTunnelEncoding();
 
         private static readonly char[] ControlChars = "\a\b\f\n\r\t\v".ToCharArray();
         private static readonly char[] EscapeChars = "abfnrtv".ToCharArray();
+
+        public static Encoding GetEncoding()
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            //if (OperatingSystem.IsBrowser()) { return new ShiftJISEncoding(); }
+            return Encoding.GetEncoding(932, EncoderFallback.ExceptionFallback, DecoderFallback.ReplacementFallback);
+        }
 
         public static string QuoteC(string str)
         {

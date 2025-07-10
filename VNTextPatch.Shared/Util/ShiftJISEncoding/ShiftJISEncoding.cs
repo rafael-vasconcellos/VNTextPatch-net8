@@ -2,14 +2,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Reflection;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 
 namespace VNTextPatch.Shared.Util
 {
     public class ShiftJISEncoding : Encoding
     {
-        public static Dictionary<string, char> bytesToChar = GetDictFromFile<string, char>("bytesToChar.json");
-        public static Dictionary<char, string> charToBytes = GetDictFromFile<char, string>("charToBytes.json");
+        public static Dictionary<string, char> bytesToChar = LoadEmbeddedJson<string, char>("bytesToChar.json");
+        public static Dictionary<char, string> charToBytes = LoadEmbeddedJson<char, string>("charToBytes.json");
 
         public override string GetString(byte[] bytes)
         {
@@ -27,59 +30,6 @@ namespace VNTextPatch.Shared.Util
         public override byte[] GetPreamble()
         {
             return [];
-        }
-
-        public override string GetString(byte[] bytes, int startIndex, int endIndex)
-        {
-            var chars = new List<char>();
-            int i = startIndex;
-            while (i < endIndex)
-            {
-                byte b1 = bytes[i];
-
-                // Verifica se é início de um caractere de 2 bytes
-                if ((b1 >= 0x81 && b1 <= 0x9F) || (b1 >= 0xE0 && b1 <= 0xFC))
-                {
-                    if (i + 1 >= endIndex) break;
-                    byte b2 = bytes[i + 1];
-                    string hex = $"{b1:X2}{b2:X2}";
-                    chars.Add(GetCharFromByte(hex));
-                    i += 2;
-                }
-                else
-                {
-                    string hex = $"{b1:X2}";
-                    chars.Add(GetCharFromByte(hex));
-                    i += 1;
-                }
-            }
-
-            return new string(chars.ToArray());
-        }
-
-
-        public override int GetBytes(char[] charArr, int charStartIndex, int charCount, byte[] bytes, int byteIndex)
-        {
-            string sliced = new string(charArr).Substring(charStartIndex, charCount);
-            int currentIndex = byteIndex;
-
-            foreach (char c in sliced)
-            {
-                string hex = GetByteFromChar(c); // ex: "8140"
-                if (hex == null) continue;
-
-                if (hex.Length == 2)
-                {
-                    bytes[currentIndex++] = System.Convert.ToByte(hex, 16);
-                }
-                else if (hex.Length == 4)
-                {
-                    bytes[currentIndex++] = System.Convert.ToByte(hex.Substring(0, 2), 16);
-                    bytes[currentIndex++] = System.Convert.ToByte(hex.Substring(2, 2), 16);
-                }
-            }
-
-            return currentIndex - byteIndex;
         }
 
         public override int GetMaxByteCount(int charCount) => charCount * 2;
@@ -117,13 +67,29 @@ namespace VNTextPatch.Shared.Util
         public static char GetCharFromByte(string targetByteString)
         {
             if (bytesToChar.ContainsKey(targetByteString)) { return bytesToChar[targetByteString]; }
-            return ' ';
+            Console.Write("Byte not found: " + targetByteString + '\n');
+            return '?';
         }
 
         public static string? GetByteFromChar(char target)
         {
             if (charToBytes.ContainsKey(target)) { return charToBytes[target]; }
-            return null;
+            return "3F";
+        }
+
+        public static Dictionary<T1, T2> LoadEmbeddedJson<T1, T2>(string fileName)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = $"VNTextPatch.Shared.Util.ShiftJISEncoding.{fileName}";
+            
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+                throw new FileNotFoundException($"Resource {resourceName} not found");
+
+            var options = new JsonSerializerOptions{ TypeInfoResolver = new DefaultJsonTypeInfoResolver() };
+            using var reader = new StreamReader(stream);
+            var json = reader.ReadToEnd();
+            return JsonSerializer.Deserialize<Dictionary<T1, T2>>(json, options);
         }
 
         /* public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
@@ -153,6 +119,86 @@ namespace VNTextPatch.Shared.Util
 
             return outputIndex - charIndex;
         } */
+
+
+        public override string GetString(byte[] bytes, int startIndex, int stopIndex)
+        {
+            var sb = new StringBuilder();
+            int i = startIndex;
+
+            while (i < stopIndex)
+            {
+                byte b1 = bytes[i];
+
+                // ASCII (inclui 0x00)
+                if (b1 <= 0x7F)
+                {
+                    sb.Append((char)b1);
+                    i++;
+                }
+                // Half-width katakana
+                else if (b1 >= 0xA1 && b1 <= 0xDF)
+                {
+                    // Opcional: mapear para Unicode U+FF61–U+FF9F
+                    sb.Append((char)(0xFF61 + (b1 - 0xA1)));
+                    i++;
+                }
+                // Possível início de caractere de 2 bytes
+                else if ((b1 >= 0x81 && b1 <= 0x9F) || (b1 >= 0xE0 && b1 <= 0xFC))
+                {
+                    if (i + 1 >= stopIndex)
+                    {
+                        Console.Write("Unexpected final Byte in byte pair.\n");
+                        break;
+                    }
+
+                    byte b2 = bytes[i + 1];
+                    if ((b2 >= 0x40 && b2 <= 0x7E) || (b2 >= 0x80 && b2 <= 0xFC))
+                    {
+                        string hex = $"{b1:X2}{b2:X2}";
+                        sb.Append(GetCharFromByte(hex));
+                        i += 2;
+                    }
+                    else
+                    {
+                        Console.Write($"Invalid second byte in Shift JIS pair: 0x{b2:X2}\n");
+                        i += 2;
+                    }
+                }
+                else
+                {
+                    Console.Write($"Invalid Shift JIS first byte: 0x{b1:X2}\n");
+                    i++;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        public override int GetBytes(char[] charArr, int charStartIndex, int charCount, byte[] bytes, int byteIndex)
+        {
+            string sliced = new string(charArr).Substring(charStartIndex, charCount);
+            int currentIndex = byteIndex;
+
+            foreach (char c in sliced)
+            {
+                string hex = GetByteFromChar(c); // ex: "8140"
+                if (hex == null) continue;
+
+                if (hex.Length == 2)
+                {
+                    bytes[currentIndex++] = System.Convert.ToByte(hex, 16);
+                }
+                else if (hex.Length == 4)
+                {
+                    bytes[currentIndex++] = System.Convert.ToByte(hex.Substring(0, 2), 16);
+                    bytes[currentIndex++] = System.Convert.ToByte(hex.Substring(2, 2), 16);
+                }
+            }
+
+            return currentIndex - byteIndex;
+        }
+
 
     }
 }

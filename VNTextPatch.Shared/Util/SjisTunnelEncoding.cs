@@ -14,6 +14,7 @@ namespace VNTextPatch.Shared.Util
 
         public static Encoding GetEncoding()
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             //if (OperatingSystem.IsBrowser()) { return new ShiftJISEncoding(); }
             return Encoding.GetEncoding(932, EncoderFallback.ExceptionFallback, DecoderFallback.ReplacementFallback);
         }
