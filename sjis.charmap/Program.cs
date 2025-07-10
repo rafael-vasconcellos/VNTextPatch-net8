@@ -16,9 +16,10 @@ class Program
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var s = Encoding.GetEncoding(932);
         byte[] bytes = s.GetBytes("ダンガンロンパ 希望の学園と絶望の高校生");
-        Encoding encoding = StringUtil.SjisEncoding;
-        Console.Write("\n\n" + encoding.GetString(bytes));
-        Console.Write("\n\n" + ShiftJISEncoding.GetByteFromChar('×') + "\n");
+        Encoding encoding = new ShiftJISEncoding();
+        string resultString = encoding.GetString(bytes);
+        Console.Write("\n\n" + resultString + '\n');
+        Console.Write("\n\n" + resultString.Length + '\n');
     }
 
     static void BuildCharMap()
