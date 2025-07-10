@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.IO;
 using System.Text.Encodings.Web; // Adicione este using para JavaScriptEncoder
+using VNTextPatch.Shared.Util;
 
 
 class Program
@@ -13,6 +14,15 @@ class Program
     static void Main()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        var s = Encoding.GetEncoding(932);
+        byte[] bytes = s.GetBytes("ダンガンロンパ 希望の学園と絶望の高校生");
+        Encoding encoding = StringUtil.SjisEncoding;
+        Console.Write("\n\n" + encoding.GetString(bytes));
+        Console.Write("\n\n" + ShiftJISEncoding.GetByteFromChar('×') + "\n");
+    }
+
+    static void BuildCharMap()
+    {
         var bytesToChar = new Dictionary<string, string>(); // hex Shift JIS → char
         var charToBytes = new Dictionary<string, string>(); // char → hex Shift JIS
         Encoding shiftJisEncoding = Encoding.GetEncoding("shift_jis");
