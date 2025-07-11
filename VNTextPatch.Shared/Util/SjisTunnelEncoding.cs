@@ -7,10 +7,17 @@ namespace VNTextPatch.Shared.Util
 {
     public class SjisTunnelEncoding : Encoding
     {
-        private static readonly Encoding SjisEncoding = GetEncoding(932, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+        private static readonly Encoding SjisEncoding = GetEncoding();
 
         private readonly byte[] _byteArray = new byte[2];
         private readonly Dictionary<char, char> _mappings = new Dictionary<char, char>();
+
+        public static Encoding GetEncoding()
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            //if (OperatingSystem.IsBrowser()) { return new ShiftJISEncoding(); }
+            return Encoding.GetEncoding(932, EncoderFallback.ExceptionFallback, DecoderFallback.ReplacementFallback);
+        }
 
         public SjisTunnelEncoding()
         {

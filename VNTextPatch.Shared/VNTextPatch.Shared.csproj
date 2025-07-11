@@ -19,13 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="names.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="Scripts\Nexas\Notes.txt" />
     <Content Include="Scripts\Yuris\Notes.txt" />
+    <Content Include="names.xml">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="template.xlsx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
