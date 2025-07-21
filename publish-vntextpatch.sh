@@ -27,7 +27,7 @@ OUTPUT_DIR="Build/VNTextPatch-$PLATFORM"
 dotnet publish VNTextPatch/VNTextPatch.csproj \
   -c Release \
   -r "$PLATFORM" \
-  #-o "$OUTPUT_DIR" \
+  -o "$OUTPUT_DIR" \
   $SELF_CONTAINED
 
 # Compacta a pasta de saída em um .zip

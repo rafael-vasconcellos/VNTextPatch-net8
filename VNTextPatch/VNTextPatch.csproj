@@ -36,13 +36,13 @@
   
   <ItemGroup>
     <None Include="App.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <SubType>Designer</SubType>
     </None>
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\VNTextPatch.Shared\VNTextPatch.Shared.csproj">
-    </ProjectReference>
+    <ProjectReference Include="..\VNTextPatch.Shared\VNTextPatch.Shared.csproj" />
   </ItemGroup>
   
   <ItemGroup>
