@@ -4,5 +4,6 @@ bin
 Build
 input
 output
+patched
 MyAppBundle
 VNTextPatch-browser-wasm.zip
