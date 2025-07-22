@@ -34,7 +34,9 @@
     <OutputPath>..\Build\Release\</OutputPath>
   </PropertyGroup>
   
+
   <ItemGroup>
+    <WasmExtraFilesToDeploy Include="settings.xml" />
     <None Include="settings.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <SubType>Designer</SubType>
