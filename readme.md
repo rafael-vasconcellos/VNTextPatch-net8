@@ -7,6 +7,7 @@ now it can be compiled for linux, webassembly, etc.
 
 + upgraded project to latest LTS .NET version
 + **Removed** suport for KiriKiri SCN Scripts because **FreeMote** uses net4.8
++ implemented multiplatform `ProportionalWordWrapper`
 
 ### replaced libs
 System.Configuration -> Microsoft.Extensions.Configuration  
