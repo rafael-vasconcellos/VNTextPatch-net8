@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RuntimeIdentifiers>browser-wasm;win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
   </PropertyGroup>
   
   <!-- Configurações específicas para WebAssembly -->
@@ -15,13 +17,12 @@
     <!-- <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath> -->
     <WasmEmitSymbolMap>false</WasmEmitSymbolMap>
     <WasmBuildOnlyAfterPublish>false</WasmBuildOnlyAfterPublish>
-    <WasmNativeStrip>true</WasmNativeStrip>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
     <WasmBuildNative>true</WasmBuildNative>
+    <WasmNativeStrip>true</WasmNativeStrip>
     <WasmSingleFileBundle>true</WasmSingleFileBundle>
     <WasmEnableWebServer>true</WasmEnableWebServer>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmAllowUndefinedSymbols>true</WasmAllowUndefinedSymbols>
   </PropertyGroup>
   
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -53,6 +54,8 @@
   
   <!-- Pacotes necessários para WebAssembly -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'browser-wasm'">
+    <NativeFileReference Include="$(SkiaSharpStaticLibraryPath)\3.1.56\st\*.a" />
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.10" />
   </ItemGroup>
+
 </Project>

@@ -139,7 +139,9 @@ namespace VNTextPatch
 
                 byte[] sjisExtContent = StringUtil.SjisTunnelEncoding.GetMappingTable();
                 if (sjisExtContent.Length > 0)
+                {
                     File.WriteAllBytes(sjisExtPath, sjisExtContent);
+                }
 
                 if (inserter.Statistics != null)
                     PrintInsertionStatistics(inserter.Statistics);

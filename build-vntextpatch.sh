@@ -15,8 +15,14 @@ mkdir -p Build
 # Restaura dependências
 dotnet restore VNTextPatch/VNTextPatch.csproj
 
+
+
+PLATFORM=${1:-linux-x64}
 # Compila em Release para a pasta Build/VNTextPatch
-dotnet build VNTextPatch/VNTextPatch.csproj -c Release -o Build/VNTextPatch
+dotnet build VNTextPatch/VNTextPatch.csproj \
+    -c Release \
+    -o Build/VNTextPatch \
+    -p:RuntimeIdentifier="$PLATFORM" \
 
 # Remove arquivos indesejados
 rm -f Build/VNTextPatch/*.pdb
