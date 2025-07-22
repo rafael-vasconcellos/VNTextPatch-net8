@@ -35,7 +35,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <None Include="App.config">
+    <None Include="settings.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <SubType>Designer</SubType>
     </None>

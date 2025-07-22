@@ -1,48 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-//using System.Configuration;
 using VNTextPatch.Shared.Util;
-using Microsoft.Extensions.Configuration;
 
 
 namespace VNTextPatch.Shared.Util
 {
-    internal class ProportionalWordWrapper : WordWrapper, IDisposable
+    internal class WindowsTextMeasurer : ITextMeasurer, IDisposable
     {
-        public static readonly ProportionalWordWrapper Default =
-            Build("ProportionalFontName", "ProportionalFontSize", "ProportionalFontBold", "ProportionalLineWidth");
-
-        public static readonly ProportionalWordWrapper Secondary =
-            Build("ProportionalFontName", "ProportionalFontSize", "ProportionalFontBold", "SecondaryProportionalLineWidth");
-
-        public static ProportionalWordWrapper Build(string fontName, string fontSize, string fontBold, string lineWidth)
-        {
-            try
-            {
-                return new ProportionalWordWrapper(
-                    AppSettings.Configuration[fontName],
-                    AppSettings.Configuration.GetValue<int>(fontSize),
-                    AppSettings.Configuration.GetValue<bool>(fontBold),
-                    AppSettings.Configuration.GetValue<int>(lineWidth)
-                );
-
-            }
-            catch (Exception e)
-            {
-                Console.Write(e);
-                throw e;
-            }
-
-        }
-
-
         //public int LineWidth;
         private readonly IntPtr _dc;
         private readonly IntPtr _font;
         private readonly byte[] _charWidths;
         private readonly Dictionary<int, int> _kernAmounts = new Dictionary<int, int>();
 
-        public ProportionalWordWrapper(string fontName, int fontSize, bool bold, int lineWidth)
+        public WindowsTextMeasurer(string fontName, int fontSize, bool bold, int lineWidth)
         {
             _dc = NativeMethods.GetDC(IntPtr.Zero);
             _font = NativeMethods.CreateFontW(
@@ -96,7 +67,7 @@ namespace VNTextPatch.Shared.Util
             get;
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             NativeMethods.ReleaseDC(IntPtr.Zero, _dc);
             NativeMethods.DeleteObject(_font);
