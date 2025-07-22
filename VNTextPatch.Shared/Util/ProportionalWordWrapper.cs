@@ -10,25 +10,35 @@ namespace VNTextPatch.Shared.Util
     internal class ProportionalWordWrapper : WordWrapper, IDisposable
     {
         public static readonly ProportionalWordWrapper Default =
-            new ProportionalWordWrapper(
-                AppSettings.Configuration["ProportionalFontName"],
-                AppSettings.Configuration.GetValue<int>("ProportionalFontSize"),
-                AppSettings.Configuration.GetValue<bool>("ProportionalFontBold"),
-                AppSettings.Configuration.GetValue<int>("ProportionalLineWidth")
-            );
+            Build("ProportionalFontName", "ProportionalFontSize", "ProportionalFontBold", "ProportionalLineWidth");
 
         public static readonly ProportionalWordWrapper Secondary =
-            new ProportionalWordWrapper(
-                AppSettings.Configuration["ProportionalFontName"],
-                AppSettings.Configuration.GetValue<int>("ProportionalFontSize"),
-                AppSettings.Configuration.GetValue<bool>("ProportionalFontBold"),
-                AppSettings.Configuration.GetValue<int>("SecondaryProportionalLineWidth")
-            );
+            Build("ProportionalFontName", "ProportionalFontSize", "ProportionalFontBold", "SecondaryProportionalLineWidth");
+
+        public static ProportionalWordWrapper Build(string fontName, string fontSize, string fontBold, string lineWidth)
+        {
+            try
+            {
+                return new ProportionalWordWrapper(
+                    AppSettings.Configuration[fontName],
+                    AppSettings.Configuration.GetValue<int>(fontSize),
+                    AppSettings.Configuration.GetValue<bool>(fontBold),
+                    AppSettings.Configuration.GetValue<int>(lineWidth)
+                );
+
+            }
+            catch (Exception e)
+            {
+                Console.Write(e);
+                throw e;
+            }
+
+        }
 
 
+        //public int LineWidth;
         private readonly IntPtr _dc;
         private readonly IntPtr _font;
-
         private readonly byte[] _charWidths;
         private readonly Dictionary<int, int> _kernAmounts = new Dictionary<int, int>();
 
@@ -81,9 +91,25 @@ namespace VNTextPatch.Shared.Util
             return width;
         }
 
+        protected override int LineWidth
+        {
+            get;
+        }
+
+        public void Dispose()
+        {
+            NativeMethods.ReleaseDC(IntPtr.Zero, _dc);
+            NativeMethods.DeleteObject(_font);
+        }
+
         private byte GetCharWidth(char c)
         {
             return c < _charWidths.Length ? _charWidths[c] : MeasureCharWidths(c, c)[0];
+        }
+
+        private int GetKernAmount(char first, char second)
+        {
+            return _kernAmounts.GetOrDefault(first | (second << 16));
         }
 
         private byte[] MeasureCharWidths(char from, char to)
@@ -99,20 +125,5 @@ namespace VNTextPatch.Shared.Util
             return widths;
         }
 
-        private int GetKernAmount(char first, char second)
-        {
-            return _kernAmounts.GetOrDefault(first | (second << 16));
-        }
-
-        protected override int LineWidth
-        {
-            get;
-        }
-
-        public void Dispose()
-        {
-            NativeMethods.ReleaseDC(IntPtr.Zero, _dc);
-            NativeMethods.DeleteObject(_font);
-        }
     }
 }
