@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNTextPatch WebAssembly</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="font-mono bg-vs-dark text-vs-text m-0 p-5 leading-relaxed">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-vs-blue mb-8 text-3xl font-bold">🔧 VNTextPatch WebAssembly</h1>
+        
+        <div class="bg-vs-panel p-5 rounded-lg mb-5">
+            <div class="mb-4">
+                <label for="fileInput" class="block mb-2 text-vs-yellow">Select files to process:</label>
+                <input type="file" id="fileInput" multiple accept="*" 
+                       class="w-full p-2 bg-vs-input border border-vs-border rounded text-vs-text">
+            </div>
+            
+            <div class="mb-4">
+                <label for="argsInput" class="block mb-2 text-vs-yellow">Command arguments:</label>
+                <input type="text" id="argsInput" placeholder="Enter command line arguments..." value="extractlocal input output"
+                       class="w-full p-2 bg-vs-input border border-vs-border rounded text-vs-text font-mono">
+            </div>
+            
+            <button class="bg-blue-800 text-white border-0 py-3 px-6 rounded cursor-pointer text-base mr-3 transition-colors" 
+                    id="runButton" onclick="runCLI()">
+                Run VNTextPatch
+            </button>
+            <button class="bg-vs-button text-white border-0 py-3 px-6 rounded cursor-pointer text-base mr-3 
+                          transition-colors hover:bg-vs-button-hover" 
+                    id="clearButton" onclick="clearOutput()">
+                Clear Output
+            </button>
+        </div>
+
+        <div id="status" class="py-3 px-4 my-3 rounded font-bold hidden"></div>
+        <div id="output" class="bg-vs-darker border border-vs-border rounded-lg p-5 mt-5 min-h-[200px] 
+                              whitespace-pre-wrap font-mono overflow-y-auto max-h-96">Ready to process files...
+    </div>
+
+    <script type="module">
+        //let dotnetRuntime;
+        let isInitialized = false;
+
+        // Initialize .NET runtime
+        async function initializeDotNet() {
+            if (isInitialized) return;
+            
+            try {
+                updateStatus('loading', 'Initializing .NET WebAssembly runtime...');
+                
+                // Import the .NET runtime
+                const { dotnet } = await import('./lib/dotnet.js');
+                
+                // Create the runtime
+                window.dotnetRuntime = await dotnet.create();
+                
+                isInitialized = true;
+                updateStatus('success', '.NET WebAssembly runtime initialized successfully!');
+                
+                // Enable the run button
+                document.getElementById('runButton').disabled = false;
+                
+            } catch (error) {
+                console.error('Failed to initialize .NET:', error);
+                updateStatus('error', `Failed to initialize .NET: ${error.message}`);
+            }
+        }
+
+        // Run the CLI application
+        window.runCLI = async function() {
+            if (!isInitialized) {
+                await initializeDotNet();
+                if (!isInitialized) return;
+            }
+
+            const args = document.getElementById('argsInput').value.trim();
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            
+            updateStatus('loading', 'Running VNTextPatch...');
+
+            try {
+                // Prepare arguments
+                const commandArgs = args ? args.split(' ') : [];
+                const fileSystem = dotnetRuntime.Module.FS
+
+                if (!fileSystem.analyzePath("input")?.exists) { fileSystem.mkdir("input") }
+                if (!fileSystem.analyzePath("output")?.exists) { fileSystem.mkdir("output") }
+                // Create a virtual file system if files are selected
+                if (files.length > 0) {
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const arrayBuffer = await file.arrayBuffer();
+                        fileSystem.writeFile("input/" + file.name, new Uint8Array(arrayBuffer));
+                        appendOutput(`File loaded: ${file.name} (${file.size} bytes)\n`);
+                    }
+                }
+
+                // Capture stdout/stderr
+                let output = '';
+                const originalWrite = fileSystem.writeFile;
+                
+                // Override console output capture
+                const originalConsoleLog = console.log;
+                console.log = function(...args) {
+                    const message = args.join(' ');
+                    output += message + '\n';
+                    appendOutput(message + '\n');
+                    originalConsoleLog.apply(console, args);
+                };
+                
+                // Run the main method
+                const exitCode = await dotnetRuntime.runMain('VNTextPatch.dll', commandArgs);
+                console.log = originalConsoleLog;
+                const fileNames = (await fileSystem.readdir('output')).filter(item => (item !== '.' && item != '..'))
+                fileNames.forEach(async fileName => { 
+                    const file = fileSystem.readFile('output/' + fileName)
+                    const blob = new Blob([file], { type: 'application/json' })
+                    const url = URL.createObjectURL(blob)
+                    downloadFile(url)
+                })
+
+                if (exitCode === 0) {
+                    updateStatus('success', 'VNTextPatch completed successfully!');
+                } else {
+                    updateStatus('error', `VNTextPatch exited with code: ${exitCode}`);
+                }
+                
+            } catch (error) {
+                console.error('Error running CLI:', error);
+                updateStatus('error', `Error: ${error.message}`);
+                appendOutput(`\nError: ${error.message}\n`);
+            }
+        };
+
+        // Clear output
+        window.clearOutput = function() {
+            document.getElementById('output').textContent = 'Ready to process files...\n';
+            document.getElementById('status').classList.add('hidden');
+        };
+
+        // Update status
+        function updateStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `py-3 px-4 my-3 rounded font-bold`;
+            
+            switch(type) {
+                case 'loading':
+                    statusDiv.className += ' bg-vs-panel text-vs-yellow';
+                    break;
+                case 'error':
+                    statusDiv.className += ' bg-red-900 text-vs-red';
+                    break;
+                case 'success':
+                    statusDiv.className += ' bg-green-900 text-vs-green';
+                    break;
+            }
+            
+            statusDiv.textContent = message;
+            statusDiv.classList.remove('hidden');
+        }
+
+        // Append output
+        function appendOutput(text) {
+            const outputDiv = document.getElementById('output');
+            outputDiv.textContent += text;
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+
+        function downloadFile(url) { 
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'file';
+            document.body.appendChild(a);
+            a.click();
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('runButton').disabled = true;
+            initializeDotNet();
+        });
+    </script>
+</body>
+</html>
