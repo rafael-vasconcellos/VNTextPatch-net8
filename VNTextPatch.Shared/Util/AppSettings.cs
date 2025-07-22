@@ -14,7 +14,7 @@ namespace VNTextPatch.Shared.Util
             {
                 return new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddXmlFile("settings.xml", optional: false, reloadOnChange: true)
+                    .AddXmlFile("settings.xml", optional: true, reloadOnChange: true)
                     .Build();
 
             }

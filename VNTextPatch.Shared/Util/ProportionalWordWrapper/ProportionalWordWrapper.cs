@@ -20,19 +20,19 @@ namespace VNTextPatch.Shared.Util
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     return new WindowsTextMeasurer(
-                        AppSettings.Configuration[fontName],
-                        AppSettings.Configuration.GetValue<int>(fontSize),
-                        AppSettings.Configuration.GetValue<bool>(fontBold),
-                        AppSettings.Configuration.GetValue<int>(lineWidth)
+                        AppSettings.Configuration[fontName] ?? "Franklin Gothic Book",
+                        AppSettings.Configuration.GetValue<int>(fontSize, 40),
+                        AppSettings.Configuration.GetValue<bool>(fontBold, false),
+                        AppSettings.Configuration.GetValue<int>(lineWidth, lineWidth.Contains("Secondary")? 670 : 1000)
                     );
                 }
                 else
                 {
                     return new SkiaTextMeasurer(
-                        AppSettings.Configuration[fontName],
-                        AppSettings.Configuration.GetValue<int>(fontSize),
-                        AppSettings.Configuration.GetValue<bool>(fontBold),
-                        AppSettings.Configuration.GetValue<int>(lineWidth)
+                        AppSettings.Configuration[fontName] ?? "Franklin Gothic Book",
+                        AppSettings.Configuration.GetValue<int>(fontSize, 40),
+                        AppSettings.Configuration.GetValue<bool>(fontBold, false),
+                        AppSettings.Configuration.GetValue<int>(lineWidth, lineWidth.Contains("Secondary")? 670 : 1000)
                     );
                 }
             }
