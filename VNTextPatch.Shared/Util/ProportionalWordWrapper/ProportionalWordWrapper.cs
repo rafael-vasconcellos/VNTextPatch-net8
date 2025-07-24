@@ -21,7 +21,7 @@ namespace VNTextPatch.Shared.Util
                 {
                     return new WindowsTextMeasurer(
                         AppSettings.Configuration[fontName] ?? "Franklin Gothic Book",
-                        AppSettings.Configuration.GetValue<int>(fontSize, 40),
+                        AppSettings.Configuration.GetValue<int>(fontSize, 0),
                         AppSettings.Configuration.GetValue<bool>(fontBold, false),
                         AppSettings.Configuration.GetValue<int>(lineWidth, lineWidth.Contains("Secondary")? 670 : 1000)
                     );
@@ -30,7 +30,7 @@ namespace VNTextPatch.Shared.Util
                 {
                     return new SkiaTextMeasurer(
                         AppSettings.Configuration[fontName] ?? "Franklin Gothic Book",
-                        AppSettings.Configuration.GetValue<int>(fontSize, 40),
+                        AppSettings.Configuration.GetValue<int>(fontSize, 0),
                         AppSettings.Configuration.GetValue<bool>(fontBold, false),
                         AppSettings.Configuration.GetValue<int>(lineWidth, lineWidth.Contains("Secondary")? 670 : 1000)
                     );
