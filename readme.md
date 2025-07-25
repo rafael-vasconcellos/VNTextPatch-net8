@@ -1,21 +1,25 @@
-## Changelog
+# About
+
+A tool for extracting original text from, and patching translated text into, a variety of visual novel formats. Upgraded to .NET 8, now it can be compiled for linux, webassembly, etc.  
 
 Original repo: [arcusmaximus/VNTranslationTools](https://github.com/arcusmaximus/VNTranslationTools)  
 Base fork: [hentaitaku/VNTranslationTools](https://github.com/hentaitaku/VNTranslationTools)  
-now it can be compiled for linux, webassembly, etc.
+WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web](https://github.com/rafael-vasconcellos/VNTextPatch-web)
 
+
+## Changelog
 
 + upgraded project to latest LTS .NET version
 + **Removed** suport for KiriKiri SCN Scripts because **FreeMote** uses net4.8
 + implemented multiplatform `ProportionalWordWrapper`
 
-### replaced libs
+#### replaced libs
 System.Configuration -> Microsoft.Extensions.Configuration  
 
 
-## About
+## About VNTextPatch
 
-A tool for extracting original text from, and patching translated text into, a variety of visual novel formats. Currently the following engines are supported:
+Currently the following engines are supported:
 
 | Engine                               | Extension(s)   | Remarks                                                                        |
 | ------------------------------------ | -------------- | ------------------------------------------------------------------------------ |
