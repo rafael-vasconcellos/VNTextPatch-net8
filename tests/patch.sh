@@ -1,0 +1,1 @@
+dotnet Build/VNTextPatch/VNTextPatch.dll insertlocal tests/input tests/output tests/patched

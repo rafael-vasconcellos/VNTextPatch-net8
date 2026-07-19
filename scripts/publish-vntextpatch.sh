@@ -29,6 +29,8 @@ dotnet publish VNTextPatch/VNTextPatch.csproj \
   -r "$PLATFORM" \
   -o "$OUTPUT_DIR" \
   #-p:RuntimeIdentifier="$PLATFORM" \
+  #-p:PublishSingleFile=true
+  #-p:PublishAot=true
   $SELF_CONTAINED
 
 # Compacta a pasta de saída em um .zip
