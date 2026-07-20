@@ -87,8 +87,8 @@ namespace VNTextPatch
                 IDisposable textCollection = textLocation.Collection as IDisposable;
                 textCollection?.Dispose();
 
-                if (textCollection is ExcelScriptCollection && extracter.TotalLines == 0)
-                    File.Delete(textPath);
+                if (extracter.TotalLines == 0)
+                    (textLocation.Collection as IEmptyExtractionCleanup)?.CleanupEmptyExtraction();
             }
 
 
@@ -170,7 +170,7 @@ namespace VNTextPatch
             if (!TryParseLocalPath(inputPath, options.Format, out inputLocation))
                 return;
 
-            GoogleDocsScriptCollection textCollection = new GoogleDocsScriptCollection(spreadsheetId);
+            var textCollection = GoogleDocsScriptFactory.Build(spreadsheetId);
 
             if (sjisExtPath == null)
                 sjisExtPath = Path.Combine(inputLocation.ScriptName != null ? Path.GetDirectoryName(outputPath) : outputPath, "sjis_ext.bin");
@@ -251,7 +251,7 @@ namespace VNTextPatch
                     return ScriptLocation.FromFilePath(textPath);
 
                 case ".xlsx":
-                    ExcelScriptCollection collection = new ExcelScriptCollection(textPath);
+                    var collection = ExcelScriptFactory.Build(textPath);
                     string scriptName = inputLocation.ScriptName != null ? Path.GetFileNameWithoutExtension(inputLocation.ScriptName) : null;
                     return new ScriptLocation(collection, scriptName);
 

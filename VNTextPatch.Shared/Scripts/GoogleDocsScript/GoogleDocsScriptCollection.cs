@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 //using System.Configuration;
-using VNTextPatch.Shared.Util;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Linq;
+using VNTextPatch.Shared.Util;
 using System.Reflection;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
@@ -25,14 +25,14 @@ namespace VNTextPatch.Shared.Scripts
             _sheets = spreadsheet.Sheets.ToDictionary(s => s.Properties.Title);
         }
 
-        public string Name
-        {
-            get { return SpreadsheetId; }
-        }
-
         public string SpreadsheetId
         {
             get;
+        }
+
+        public string Name
+        {
+            get { return SpreadsheetId; }
         }
 
         public IScript GetTemporaryScript()
@@ -60,6 +60,11 @@ namespace VNTextPatch.Shared.Scripts
             throw new NotImplementedException();
         }
 
+        public override string ToString()
+        {
+            return SpreadsheetId;
+        }
+
         internal static SheetsService GetService()
         {
             BaseClientService.Initializer initializer = GetServiceAccountInitializer() ?? GetApiKeyInitializer();
@@ -71,6 +76,11 @@ namespace VNTextPatch.Shared.Scripts
 
             initializer.ApplicationName = "VNTextPatch";
             return new SheetsService(initializer);
+        }
+
+        internal Sheet GetSheet(string sheetName)
+        {
+            return _sheets[sheetName];
         }
 
         private static BaseClientService.Initializer GetApiKeyInitializer()
@@ -102,16 +112,6 @@ namespace VNTextPatch.Shared.Scripts
                    {
                        HttpClientInitializer = credential
                    };
-        }
-
-        internal Sheet GetSheet(string sheetName)
-        {
-            return _sheets[sheetName];
-        }
-
-        public override string ToString()
-        {
-            return SpreadsheetId;
         }
     }
 }

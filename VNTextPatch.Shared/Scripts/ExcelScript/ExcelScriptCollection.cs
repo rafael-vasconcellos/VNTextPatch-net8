@@ -8,7 +8,7 @@ using NPOI.XSSF.UserModel;
 
 namespace VNTextPatch.Shared.Scripts
 {
-    public class ExcelScriptCollection : IScriptCollection, IDisposable
+    public class ExcelScriptCollection : IScriptDisposableCollection, IEmptyExtractionCleanup
     {
         private XSSFWorkbook _workbook;
         private ExcelScript _script;
@@ -92,6 +92,11 @@ namespace VNTextPatch.Shared.Scripts
                 File.Delete(Name);
                 File.Move(Name + ".temp", Name);
             }
+        }
+
+        public void CleanupEmptyExtraction()
+        {
+            File.Delete(Name);
         }
     }
 }
