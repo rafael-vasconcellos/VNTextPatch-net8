@@ -8,6 +8,7 @@ namespace VNTextPatch.Shared.Util
 {
     internal class SkiaTextMeasurer : ITextMeasurer, IDisposable
     {
+        private readonly SkiaSharp.SKFont _font;
         private readonly SkiaSharp.SKPaint _paint;
         private readonly Dictionary<char, float> _charWidthCache = new Dictionary<char, float>();
         private readonly Dictionary<int, float> _kernAmounts = new Dictionary<int, float>();
@@ -15,16 +16,21 @@ namespace VNTextPatch.Shared.Util
 
         public SkiaTextMeasurer(string fontName, int fontSize, bool bold, int lineWidth)
         {
-            _paint = new SkiaSharp.SKPaint
+            _font = new SkiaSharp.SKFont
             {
                 Typeface = SkiaSharp.SKTypeface.FromFamilyName(
                     fontName,
                     bold ? SkiaSharp.SKFontStyleWeight.Bold : SkiaSharp.SKFontStyleWeight.Normal,
                     SkiaSharp.SKFontStyleWidth.Normal,
                     SkiaSharp.SKFontStyleSlant.Upright),
-                TextSize = fontSize,
-                IsAntialias = true,
-                HintingLevel = SkiaSharp.SKPaintHinting.Normal
+                Size = fontSize,
+                Edging = SkiaSharp.SKFontEdging.Antialias,
+                Hinting = SkiaSharp.SKFontHinting.Normal
+            };
+
+            _paint = new SkiaSharp.SKPaint
+            {
+                IsAntialias = true
             };
 
             _cacheEnabled = true;
@@ -43,7 +49,7 @@ namespace VNTextPatch.Shared.Util
             string substring = text.Substring(offset, length);
 
             // SkiaSharp já aplica kerning automaticamente
-            return (int)Math.Ceiling(_paint.MeasureText(substring));
+            return (int)Math.Ceiling(MeasureText(substring));
         }
 
         protected override int LineWidth
@@ -54,11 +60,12 @@ namespace VNTextPatch.Shared.Util
         public override void Dispose()
         {
             _paint?.Dispose();
+            _font?.Dispose();
         }
 
         private float GetCharWidthDirect(char c)
         {
-            return _paint.MeasureText(c.ToString());
+            return MeasureText(c.ToString());
         }
 
         private int GetCharWidth(char c)
@@ -68,7 +75,7 @@ namespace VNTextPatch.Shared.Util
                 return (int)Math.Ceiling(cachedWidth);
             }
 
-            float width = _paint.MeasureText(c.ToString());
+            float width = MeasureText(c.ToString());
 
             if (_cacheEnabled)
             {
@@ -90,7 +97,7 @@ namespace VNTextPatch.Shared.Util
 
             // Para pares não cached, calcular on-demand
             string pair = $"{first}{second}";
-            float pairWidth = _paint.MeasureText(pair);
+            float pairWidth = MeasureText(pair);
             float individualSum = GetCharWidthDirect(first) + GetCharWidthDirect(second);
             float kernAmount = pairWidth - individualSum;
 
@@ -103,14 +110,14 @@ namespace VNTextPatch.Shared.Util
             // Cache caracteres ASCII mais comuns
             for (char c = ' '; c <= '~'; c++)
             {
-                _charWidthCache[c] = _paint.MeasureText(c.ToString());
+                _charWidthCache[c] = MeasureText(c.ToString());
             }
 
             // Cache alguns caracteres especiais comuns
             char[] specialChars = { 'á', 'à', 'ã', 'â', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú', 'ç', 'ñ' };
             foreach (char c in specialChars)
             {
-                _charWidthCache[c] = _paint.MeasureText(c.ToString());
+                _charWidthCache[c] = MeasureText(c.ToString());
             }
         }
 
@@ -125,7 +132,7 @@ namespace VNTextPatch.Shared.Util
             {
                 if (pair.Length == 2)
                 {
-                    float pairWidth = _paint.MeasureText(pair);
+                    float pairWidth = MeasureText(pair);
                     float individualSum = GetCharWidthDirect(pair[0]) + GetCharWidthDirect(pair[1]);
                     float kernAmount = pairWidth - individualSum;
 
@@ -133,6 +140,18 @@ namespace VNTextPatch.Shared.Util
                     _kernAmounts[key] = kernAmount;
                 }
             }
+        }
+
+        private float MeasureText(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return 0;
+            }
+
+            Span<ushort> glyphs = stackalloc ushort[_font.CountGlyphs(text)];
+            _font.GetGlyphs(text, glyphs);
+            return _font.MeasureText(glyphs, _paint);
         }
 
     }
