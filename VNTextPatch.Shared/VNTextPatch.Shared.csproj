@@ -33,11 +33,12 @@
 
   <!-- Pacotes aparentemente incompatíveis com WebAssembly -->
   <ItemGroup>
-    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.70.0.3819" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Security.Cryptography.X509Certificates" Version="4.3.2" /> <!-- SSL/TLS -->
-    <PackageReference Include="Microsoft.Extensions.Configuration.Xml" Version="9.0.6" />
+    <!-- Aparentemente também incompatíveis com native AOT -->
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.70.0.3819" />
     <PackageReference Include="NPOI" Version="2.7.4" /> <!-- excel -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Xml" Version="9.0.6" />
   </ItemGroup>
 
 

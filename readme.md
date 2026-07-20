@@ -11,7 +11,7 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 
 + upgraded project to latest LTS .NET version
 + **Removed** suport for KiriKiri SCN Scripts because **FreeMote** uses net4.8
-+ implemented multiplatform `ProportionalWordWrapper`
++ implemented multiplatform `ProportionalWordWrapper` using SkiaSharp
 
 #### replaced libs
 System.Configuration -> Microsoft.Extensions.Configuration  
