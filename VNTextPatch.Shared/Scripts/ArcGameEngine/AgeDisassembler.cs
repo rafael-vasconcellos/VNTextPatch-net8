@@ -591,10 +591,10 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
 
         private readonly Stream _stream;
         private readonly BinaryReader _reader;
-        private readonly TextWriter _writer;
+        private readonly TextWriter? _writer;
         private readonly byte[] _textBuffer = new byte[0x200];
 
-        public AgeDisassembler(Stream stream, TextWriter writer = null)
+        public AgeDisassembler(Stream stream, TextWriter? writer = null)
         {
             _stream = stream;
             _reader = new BinaryReader(stream);
@@ -603,7 +603,7 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
 
         public delegate void AddressHandler(int addrOffset, bool isStringAddr);
 
-        public event AddressHandler AddressEncountered;
+        public event AddressHandler? AddressEncountered;
 
         public Range StringPoolRange
         {
@@ -653,7 +653,7 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
             while (_stream.Position < StringPoolRange.Offset)
             {
                 AgeInstruction instr = ReadInstruction();
-                int[] addressOperands = AddressOperands.GetOrDefault(instr.Opcode);
+                AddressOperands.TryGetValue(instr.Opcode, out var addressOperands);
 
                 for (int i = 0; i < instr.Operands.Count; i++)
                 {
@@ -714,9 +714,11 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
 
         private void WriteInstruction(AgeInstruction instr)
         {
-            _writer.Write($"{instr.Offset:X08} {instr.Opcode:X04}");
+            if (_writer == null)
+                throw new Exception("_writer is null");
 
-            int[] addressOperands = AddressOperands.GetOrDefault(instr.Opcode);
+            _writer.Write($"{instr.Offset:X08} {instr.Opcode:X04}");
+            AddressOperands.TryGetValue(instr.Opcode, out var addressOperands);
             for (int i = 0; i < instr.Operands.Count; i++)
             {
                 _writer.Write(i == 0 ? " " : ", ");

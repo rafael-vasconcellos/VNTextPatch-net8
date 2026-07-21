@@ -8,13 +8,13 @@ namespace VNTextPatch.Shared.Scripts
     {
         public string Extension => ".json";
 
-        private Entry[] _entries;
+        private Entry[] _entries = [];
 
         public void Load(ScriptLocation location)
         {
             using StreamReader reader = new StreamReader(location.ToFilePath());
             JsonSerializer serializer = new JsonSerializer();
-            _entries = serializer.Deserialize<Entry[]>(new JsonTextReader(reader));
+            _entries = serializer.Deserialize<Entry[]>(new JsonTextReader(reader)) ?? _entries;
         }
 
         public IEnumerable<ScriptString> GetStrings()
@@ -33,14 +33,14 @@ namespace VNTextPatch.Shared.Scripts
                     }
                 }
 
-                yield return new ScriptString(entry.Message, ScriptStringType.Message);
+                yield return new ScriptString(entry.Message!, ScriptStringType.Message);
             }
         }
 
         public void WritePatched(IEnumerable<ScriptString> strings, ScriptLocation location)
         {
             List<Entry> entries = new List<Entry>();
-            Entry pendingEntry = null;
+            Entry? pendingEntry = null;
             foreach (ScriptString str in strings)
             {
                 if (str.Type == ScriptStringType.CharacterName)
@@ -53,7 +53,7 @@ namespace VNTextPatch.Shared.Scripts
                     {
                         if (pendingEntry.Names == null)
                         {
-                            pendingEntry.Names = new List<string> { pendingEntry.Name };
+                            pendingEntry.Names = new List<string> { pendingEntry.Name! };
                             pendingEntry.Name = null;
                         }
                         pendingEntry.Names.Add(str.Text);
@@ -83,21 +83,21 @@ namespace VNTextPatch.Shared.Scripts
         private class Entry
         {
             [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
-            public string Name
+            public string? Name
             {
                 get;
                 set;
             }
 
             [JsonProperty("names", NullValueHandling = NullValueHandling.Ignore)]
-            public List<string> Names
+            public List<string>? Names
             {
                 get;
                 set;
             }
 
             [JsonProperty("message")]
-            public string Message
+            public string? Message
             {
                 get;
                 set;

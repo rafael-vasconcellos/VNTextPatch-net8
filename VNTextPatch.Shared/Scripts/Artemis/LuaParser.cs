@@ -5,7 +5,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
 {
     internal static class LuaParser
     {
-        public static ILuaNode Read(string text, ref int pos)
+        public static ILuaNode? Read(string text, ref int pos)
         {
             SkipWhitespace(text, ref pos);
             if (pos == text.Length)
@@ -125,7 +125,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
             if (text[pos] == '[')
             {
                 pos++;
-                ILuaNode nameNode = Read(text, ref pos);
+                var nameNode = Read(text, ref pos);
                 name = nameNode switch
                        {
                            LuaNumber num => num.Value,
@@ -155,7 +155,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
             if (pos == text.Length || text[pos++] != '=')
                 throw new InvalidDataException("No \"=\" found after attribute name");
 
-            ILuaNode value = Read(text, ref pos);
+            var value = Read(text, ref pos);
             if (value == null)
                 throw new InvalidDataException("Attribute without value encountered");
 
@@ -178,7 +178,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
                     break;
                 }
 
-                ILuaNode item = Read(text, ref pos);
+                var item = Read(text, ref pos);
                 if (item == null)
                     throw new InvalidDataException("Incomplete table encountered");
 

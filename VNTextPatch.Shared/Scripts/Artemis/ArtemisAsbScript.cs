@@ -1,7 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Collections;
 using System.Text;
 using System.Text.RegularExpressions;
 using VNTextPatch.Shared.Util;
@@ -10,8 +10,8 @@ namespace VNTextPatch.Shared.Scripts.Artemis
 {
     public class ArtemisAsbScript : IScript
     {
-        private List<object> _items;
-        private List<TextReference> _textRefs;
+        private List<object> _items = [];
+        private List<TextReference> _textRefs = [];
 
         public string Extension => ".asb";
 

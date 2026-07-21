@@ -6,7 +6,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
 {
     internal static class SquirrelObject
     {
-        public static object Read(BinaryReader reader, Encoding encoding)
+        public static object? Read(BinaryReader reader, Encoding encoding)
         {
             ObjectType type = (ObjectType)reader.ReadInt32();
             switch (type)

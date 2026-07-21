@@ -9,13 +9,13 @@ namespace VNTextPatch.Shared.Scripts.Yuris
     {
         public string Extension => ".ybn";
 
-        private IScript _innerScript;
+        private IScript? _innerScript;
 
         public void Load(ScriptLocation location)
         {
             _innerScript = null;
 
-            string magic = ReadMagic(location);
+            string? magic = ReadMagic(location);
             _innerScript = magic switch
                            {
                                "YSTB" => new YurisScenarioScript(),
@@ -35,7 +35,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             _innerScript?.WritePatched(strings, location);
         }
 
-        private static string ReadMagic(ScriptLocation location)
+        private static string? ReadMagic(ScriptLocation location)
         {
             using Stream stream = File.OpenRead(location.ToFilePath());
             byte[] magic = new byte[4];

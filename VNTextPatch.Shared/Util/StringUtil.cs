@@ -37,7 +37,7 @@ namespace VNTextPatch.Shared.Util
 
         public static string EscapeC(string str)
         {
-            StringBuilder result = null;
+            StringBuilder? result = null;
             int startOffset = 0;
             while (true)
             {
@@ -60,7 +60,7 @@ namespace VNTextPatch.Shared.Util
 
         public static string UnescapeC(string str)
         {
-            StringBuilder result = null;
+            StringBuilder? result = null;
             int startOffset = 0;
             while (startOffset < str.Length)
             {
@@ -118,12 +118,12 @@ namespace VNTextPatch.Shared.Util
             return result.ToString();
         }
 
-        public static string NullIf(string str, string compareTo)
+        public static string? NullIf(string? str, string compareTo)
         {
             return str == compareTo ? null : str;
         }
 
-        public static string NullIfEmpty(string str)
+        public static string? NullIfEmpty(string? str)
         {
             return NullIf(str, string.Empty);
         }
@@ -170,7 +170,7 @@ namespace VNTextPatch.Shared.Util
                 yield return (new VNTextPatch.Shared.Scripts.Range(startPos, input.Length - startPos, ScriptStringType.Message), false);
         }
 
-        public static IEnumerable<(string, Match)> GetMatchingAndSurroundingTexts(string input, Regex regex)
+        public static IEnumerable<(string?, Match?)> GetMatchingAndSurroundingTexts(string input, Regex regex)
         {
             int startPos = 0;
             foreach (Match match in regex.Matches(input))
@@ -188,9 +188,9 @@ namespace VNTextPatch.Shared.Util
                 yield return (input.Substring(startPos), null);
         }
 
-        public static string FancifyQuotes(string str, Regex tagRegex = null)
+        public static string FancifyQuotes(string str, Regex? tagRegex = null)
         {
-            MatchCollection tagMatches = tagRegex?.Matches(str);
+            MatchCollection? tagMatches = tagRegex?.Matches(str);
             str = Regex.Replace(
                 str,
                 @"(?<=^|\s|"")'",

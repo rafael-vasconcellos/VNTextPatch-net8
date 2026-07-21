@@ -94,15 +94,15 @@ namespace VNTextPatch.Shared.Util
             while (searchStartIdx < searchEndIdx)
             {
                 int foundIdx = -1;
-                byte[] search = null;
-                byte[] replace = null;
+                byte[]? search = null;
+                byte[]? replace = null;
                 foreach (KeyValuePair<byte[], byte[]> replacement in replacements)
                 {
                     int index = IndexOf(data, replacement.Key, searchStartIdx, searchEndIdx - searchStartIdx);
                     if (index < 0)
                         continue;
 
-                    if (foundIdx < 0 || index < foundIdx || (index == foundIdx && replacement.Key.Length > search.Length))
+                    if (foundIdx < 0 || index < foundIdx || (index == foundIdx && replacement.Key.Length > search?.Length))
                     {
                         foundIdx = index;
                         search = replacement.Key;
@@ -113,7 +113,7 @@ namespace VNTextPatch.Shared.Util
                 if (foundIdx < 0)
                     break;
 
-                if (search.Length != replace.Length)
+                if (search!.Length != replace!.Length)
                     throw new ArgumentException();
 
                 for (int i = 0; i < search.Length; i++)
@@ -139,16 +139,16 @@ namespace VNTextPatch.Shared.Util
             while (searchStartIdx < searchEndIdx)
             {
                 int foundIdx = -1;
-                byte[] search = null;
-                byte[] replace = null;
+                byte[]? search = null;
+                byte[]? replace = null;
 
                 foreach (KeyValuePair<byte[], byte[]> replacement in replacements)
-                {
-                    int index = IndexOf(input, replacement.Key, searchStartIdx, searchEndIdx - searchEndIdx);
+                { 
+                    int index = IndexOf(input, replacement.Key, searchStartIdx, searchEndIdx - searchStartIdx);
                     if (index < 0)
                         continue;
 
-                    if (foundIdx < 0 || index < foundIdx || (index == foundIdx && replacement.Key.Length > search.Length))
+                    if (foundIdx < 0 || index < foundIdx || (index == foundIdx && replacement.Key.Length > search?.Length))
                     {
                         foundIdx = index;
                         search = replacement.Key;
@@ -160,7 +160,7 @@ namespace VNTextPatch.Shared.Util
                     break;
 
                 patcher.CopyUpTo(foundIdx);
-                patcher.ReplaceBytes(search.Length, replace);
+                patcher.ReplaceBytes(search!.Length, replace!);
                 searchStartIdx = foundIdx + search.Length;
             }
 

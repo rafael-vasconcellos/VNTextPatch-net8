@@ -78,7 +78,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
             switch (GetCommandName(command))
             {
                 case "name":
-                    Capture nameCapture = command.Groups["attrname"].Captures.Cast<Capture>().FirstOrDefault();
+                    var nameCapture = command.Groups["attrname"].Captures.Cast<Capture>().FirstOrDefault();
                     if (nameCapture != null)
                         yield return new Range(nameCapture.Index, nameCapture.Length, ScriptStringType.CharacterName);
 

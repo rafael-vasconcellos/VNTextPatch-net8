@@ -12,7 +12,7 @@ namespace VNTextPatch.Shared.Scripts
     {
         private const string EmptyTextMarker = "(empty)";
 
-        private IList<IList<object>> _cells;
+        private IList<IList<object>> _cells = [];
 
         public string Extension
         {
@@ -34,7 +34,7 @@ namespace VNTextPatch.Shared.Scripts
         {
             for (int rowIdx = 1; rowIdx < _cells.Count; rowIdx++)
             {
-                string characterNames = GetCellContent(rowIdx, ExcelColumn.TranslatedCharacter) ??
+                var characterNames = GetCellContent(rowIdx, ExcelColumn.TranslatedCharacter) ??
                                         GetCellContent(rowIdx, ExcelColumn.OriginalCharacter);
 
                 if (characterNames != null)
@@ -56,30 +56,31 @@ namespace VNTextPatch.Shared.Scripts
 
         private string GetText(int rowIdx)
         {
-            string originalText = GetCellContent(rowIdx, ExcelColumn.OriginalLine);
+            var originalText = GetCellContent(rowIdx, ExcelColumn.OriginalLine);
             if (originalText != null)
                 Total++;
 
-            string translatedText = GetCellContent(rowIdx, ExcelColumn.TranslatedLine);
+            var translatedText = GetCellContent(rowIdx, ExcelColumn.TranslatedLine);
             if (translatedText != null)
                 Translated++;
 
-            string checkedText = GetCellContent(rowIdx, ExcelColumn.CheckedLine);
+            var checkedText = GetCellContent(rowIdx, ExcelColumn.CheckedLine);
             if (checkedText != null)
                 Checked++;
 
-            string editedText = GetCellContent(rowIdx, ExcelColumn.EditedLine);
+            var editedText = GetCellContent(rowIdx, ExcelColumn.EditedLine);
             if (editedText != null)
                 Edited++;
 
             string text = StringUtil.NullIf(editedText, ".") ??
                           StringUtil.NullIf(checkedText, ".") ??
                           translatedText ??
-                          originalText;
+                          originalText ??
+                          string.Empty;
             return text != EmptyTextMarker ? text : string.Empty;
         }
 
-        private string GetCellContent(int rowIdx, ExcelColumn column)
+        private string? GetCellContent(int rowIdx, ExcelColumn column)
         {
             if (rowIdx >= _cells.Count)
                 return null;
@@ -89,7 +90,7 @@ namespace VNTextPatch.Shared.Scripts
             if (colIdx >= row.Count)
                 return null;
 
-            string value = row[colIdx] as string;
+            var value = row[colIdx] as string;
             return StringUtil.NullIf(value, string.Empty);
         }
 

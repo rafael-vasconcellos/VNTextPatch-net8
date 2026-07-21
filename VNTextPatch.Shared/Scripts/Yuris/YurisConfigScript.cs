@@ -12,7 +12,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
         public string Extension => ".ybn";
 
-        private byte[] _data;
+        private byte[]? _data;
 
         public void Load(ScriptLocation location)
         {

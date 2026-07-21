@@ -13,7 +13,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
         private static readonly Regex CommandRegex = new Regex(@"\[(?<cmd>/?\w+)(?:\s+(?<attrname>\w+)\s*=\s*(?<attrvalue>""(?:\\.|[^""])*""|[-+\.\d]+))*\]");
 
         private readonly List<ILuaNode> _rootNodes = new List<ILuaNode>();
-        private LuaTable _ast;
+        private LuaTable? _ast;
 
         public string Extension => ".ast";
 
@@ -25,7 +25,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
             int pos = 0;
             while (true)
             {
-                ILuaNode value = LuaParser.Read(doc, ref pos);
+                var value = LuaParser.Read(doc, ref pos);
                 if (value == null)
                     break;
 
@@ -93,7 +93,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
 
         private IEnumerable<(ILuaNode, ScriptStringType)> GetStringNodes()
         {
-            LuaNumber version = _rootNodes.OfType<LuaAttribute>()
+            var version = _rootNodes.OfType<LuaAttribute>()
                                           .FirstOrDefault(a => a.Name == "astver")
                                           ?.Value as LuaNumber;
             return version?.Value switch
@@ -106,7 +106,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
 
         private IEnumerable<(ILuaNode, ScriptStringType)> GetStringNodesV1()
         {
-            LuaTable texts = _ast["text"] as LuaTable;
+            var texts = _ast?["text"] as LuaTable;
             if (texts == null)
                 yield break;
 
@@ -114,11 +114,11 @@ namespace VNTextPatch.Shared.Scripts.Artemis
                                            .Select(a => a.Value)
                                            .OfType<LuaTable>())
             {
-                LuaString name = (text["name"] as LuaTable)?["name"] as LuaString;
+                var name = (text["name"] as LuaTable)?["name"] as LuaString;
                 if (name != null)
                     yield return (name, ScriptStringType.CharacterName);
 
-                LuaTable select = text["select"] as LuaTable;
+                var select = text["select"] as LuaTable;
                 if (select != null)
                 {
                     foreach (LuaString choice in select.OfType<LuaString>())
@@ -127,7 +127,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
                     }
                 }
 
-                LuaTable message = text.OfType<LuaTable>().FirstOrDefault();
+                var message = text.OfType<LuaTable>().FirstOrDefault();
                 if (message != null)
                     yield return (message, ScriptStringType.Message);
             }
@@ -135,11 +135,14 @@ namespace VNTextPatch.Shared.Scripts.Artemis
 
         private IEnumerable<(ILuaNode, ScriptStringType)> GetStringNodesV2()
         {
-            foreach (LuaTable block in _ast.OfType<LuaAttribute>()
+            if (_ast == null)
+                throw new Exception("_ast is null");
+
+            foreach (var block in _ast.OfType<LuaAttribute>()
                                            .Select(a => a.Value)
                                            .OfType<LuaTable>())
             {
-                LuaTable select = (block["select"] as LuaTable)?["ja"] as LuaTable;
+                var select = (block["select"] as LuaTable)?["ja"] as LuaTable;
                 if (select != null)
                 {
                     foreach (LuaString choice in select.OfType<LuaString>())
@@ -148,14 +151,14 @@ namespace VNTextPatch.Shared.Scripts.Artemis
                     }
                 }
 
-                LuaTable text = (block["text"] as LuaTable)?["ja"] as LuaTable;
+                var text = (block["text"] as LuaTable)?["ja"] as LuaTable;
                 if (text != null && text.Count == 1)
                 {
-                    LuaTable message = text[0] as LuaTable;
+                    var message = text[0] as LuaTable;
                     if (message == null)
                         continue;
 
-                    LuaTable names = message["name"] as LuaTable;
+                    var names = message["name"] as LuaTable;
                     if (names != null)
                     {
                         foreach (LuaString name in names.OfType<LuaString>())
@@ -196,14 +199,16 @@ namespace VNTextPatch.Shared.Scripts.Artemis
         private static void DeserializeMessage(string text, LuaTable table)
         {
             table.RemoveAll(n => !(n is LuaAttribute));
-            foreach ((string segment, Match match) in StringUtil.GetMatchingAndSurroundingTexts(text, new Regex(@"\r\n|\[.+?\]")))
+            foreach ((var segment, var match) in StringUtil.GetMatchingAndSurroundingTexts(text, new Regex(@"\r\n|\[.+?\]")))
             {
                 if (segment != null)
                     table.Add(new LuaString(segment));
-                else if (match.Value == "\r\n")
+                else if (match?.Value == "\r\n")
                     table.Add(new LuaTable { new LuaString("rt2") });
-                else
+                else if (match?.Value != null)
                     table.Add(DeserializeCommand(match.Value));
+                else if (match == null)
+                    throw new InvalidDataException($"Failed to parse command");
             }
         }
 

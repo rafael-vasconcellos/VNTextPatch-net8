@@ -13,7 +13,7 @@ namespace VNTextPatch.Shared.Scripts
 
         private readonly ExcelScriptCollection _collection;
         private readonly IWorkbook _workbook;
-        private ISheet _sheet;
+        private ISheet? _sheet;
 
         public ExcelScript(ExcelScriptCollection collection, IWorkbook workbook)
         {
@@ -36,12 +36,17 @@ namespace VNTextPatch.Shared.Scripts
 
         public IEnumerable<ScriptString> GetStrings()
         {
+            if (_sheet == null)
+            {
+                throw new Exception("_sheet is null");
+            }
+
             foreach (IRow row in _sheet)
             {
                 if (row.RowNum == 0)
                     continue;
 
-                string characterNames = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.TranslatedCharacter)?.StringCellValue) ??
+                string? characterNames = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.TranslatedCharacter)?.StringCellValue) ??
                                         StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.OriginalCharacter)?.StringCellValue);
                 if (characterNames != null)
                 {
@@ -51,7 +56,7 @@ namespace VNTextPatch.Shared.Scripts
                     }
                 }
 
-                string text = GetText(row);
+                var text = GetText(row);
                 if (text != null)
                 {
                     text = Regex.Replace(text, @"(?<!\r)\n", "\r\n");
@@ -60,25 +65,25 @@ namespace VNTextPatch.Shared.Scripts
             }
         }
 
-        private string GetText(IRow row)
+        private string? GetText(IRow row)
         {
-            string originalText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.OriginalLine)?.StringCellValue);
+            var originalText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.OriginalLine)?.StringCellValue);
             if (originalText != null)
                 Total++;
 
-            string translatedText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.TranslatedLine)?.StringCellValue);
+            var translatedText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.TranslatedLine)?.StringCellValue);
             if (translatedText != null)
                 Translated++;
 
-            string checkedText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.CheckedLine)?.StringCellValue);
+            var checkedText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.CheckedLine)?.StringCellValue);
             if (checkedText != null)
                 Checked++;
 
-            string editedText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.EditedLine)?.StringCellValue);
+            var editedText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.EditedLine)?.StringCellValue);
             if (editedText != null)
                 Edited++;
 
-            string text = StringUtil.NullIf(editedText, ".") ??
+            var text = StringUtil.NullIf(editedText, ".") ??
                           StringUtil.NullIf(checkedText, ".") ??
                           translatedText ??
                           originalText;
@@ -125,7 +130,7 @@ namespace VNTextPatch.Shared.Scripts
         {
             ICell cell = row.CreateCell((int)column);
             cell.SetCellValue(value);
-            cell.CellStyle = _sheet.GetColumnStyle((int)column);
+            cell.CellStyle = _sheet?.GetColumnStyle((int)column);
         }
 
         public int Translated

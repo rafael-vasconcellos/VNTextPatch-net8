@@ -11,9 +11,9 @@ namespace VNTextPatch.Shared.Scripts.Mware
         private readonly BinaryReader _reader;
         private readonly Encoding _encoding;
 
-        private readonly StreamWriter _writer;
+        private readonly StreamWriter? _writer;
 
-        public SquirrelV2Disassembler(Stream stream, Encoding encoding, StreamWriter writer = null)
+        public SquirrelV2Disassembler(Stream stream, Encoding encoding, StreamWriter? writer = null)
         {
             _stream = stream;
             _reader = new BinaryReader(stream);
@@ -22,8 +22,8 @@ namespace VNTextPatch.Shared.Scripts.Mware
             _writer = writer;
         }
 
-        public event Action<SquirrelLiteralPool> LiteralPoolEncountered;
-        public event Action<SquirrelLiteralReference> TextReferenceEncountered;
+        public event Action<SquirrelLiteralPool>? LiteralPoolEncountered;
+        public event Action<SquirrelLiteralReference>? TextReferenceEncountered;
 
         public void Disassemble()
         {

@@ -67,7 +67,7 @@ namespace VNTextPatch.Shared.Scripts
 
         internal static SheetsService GetService()
         {
-            BaseClientService.Initializer initializer = GetServiceAccountInitializer() ?? GetApiKeyInitializer();
+            var initializer = GetServiceAccountInitializer() ?? GetApiKeyInitializer();
             if (initializer == null)
             {
                 throw new Exception("No Google credentials registered. Please put an API key in the \"GoogleApiKey\" entry of the .config file, " +
@@ -83,9 +83,9 @@ namespace VNTextPatch.Shared.Scripts
             return _sheets[sheetName];
         }
 
-        private static BaseClientService.Initializer GetApiKeyInitializer()
+        private static BaseClientService.Initializer? GetApiKeyInitializer()
         {
-            string apiKey = AppSettings.Configuration["GoogleApiKey"];
+            var apiKey = AppSettings.Configuration["GoogleApiKey"];
             if (string.IsNullOrEmpty(apiKey))
                 return null;
 
@@ -95,9 +95,10 @@ namespace VNTextPatch.Shared.Scripts
                    };
         }
 
-        private static BaseClientService.Initializer GetServiceAccountInitializer()
+        private static BaseClientService.Initializer? GetServiceAccountInitializer()
         {
-            string keyFilePath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "google-service-account.json");
+            var directoryName = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+            string keyFilePath = Path.Combine(directoryName ?? "", "google-service-account.json");
             if (!File.Exists(keyFilePath))
                 return null;
 

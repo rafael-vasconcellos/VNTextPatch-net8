@@ -20,9 +20,10 @@ namespace VNTextPatch.Shared
             using (Stream stream = File.OpenRead(FilePath))
             {
                 XmlSerializer serializer = new XmlSerializer(typeof(Document));
-                doc = (Document)serializer.Deserialize(stream);
+                doc = serializer.Deserialize(stream) as Document
+                    ?? throw new InvalidOperationException("Failed to deserialize the XML.");
             }
-            _translations = (doc.Characters ?? new Character[0]).ToDictionary(c => c.JapaneseName, c => c.EnglishName);
+            _translations = (doc.Characters ?? new Character[0]).ToDictionary(c => c.JapaneseName!, c => c.EnglishName!);
         }
 
         private static CharacterNames Instance
@@ -32,8 +33,7 @@ namespace VNTextPatch.Shared
 
         public static string GetTranslation(string japaneseName)
         {
-            string englishName = Instance._translations.GetOrDefault(japaneseName);
-            if (englishName == null)
+            if (!Instance._translations.TryGetValue(japaneseName, out var englishName))
             {
                 Instance._translations.Add(japaneseName, japaneseName);
                 return japaneseName;
@@ -55,14 +55,20 @@ namespace VNTextPatch.Shared
 
         private static string FilePath
         {
-            get { return Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "names.xml"); }
+            get
+            {
+                var directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+                    ?? throw new InvalidOperationException("It was not possible to determine the application directory.");
+
+                return Path.Combine(directory, "names.xml");
+            }
         }
 
         [XmlRoot("names")]
         public class Document
         {
             [XmlElement("n")]
-            public Character[] Characters
+            public Character[]? Characters
             {
                 get;
                 set;
@@ -72,14 +78,14 @@ namespace VNTextPatch.Shared
         public class Character
         {
             [XmlElement("o")]
-            public string JapaneseName
+            public string? JapaneseName
             {
                 get;
                 set;
             }
 
             [XmlElement("tl")]
-            public string EnglishName
+            public string? EnglishName
             {
                 get;
                 set;

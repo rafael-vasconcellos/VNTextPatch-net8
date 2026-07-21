@@ -6,16 +6,19 @@ namespace VNTextPatch.Shared.Scripts.Artemis
 {
     internal class LuaTable : List<ILuaNode>, ILuaNode
     {
-        public ILuaNode this[string key]
+        public ILuaNode? this[string key]
         {
             get { return this.OfType<LuaAttribute>().FirstOrDefault(n => n.Name == key)?.Value; }
             set
             {
-                LuaAttribute node = this.OfType<LuaAttribute>().FirstOrDefault(n => n.Name == key);
-                if (node != null)
-                    node.Value = value;
-                else
-                    Add(new LuaAttribute(key, value));
+                if (value != null)
+                {
+                    var node = this.OfType<LuaAttribute>().FirstOrDefault(n => n.Name == key);
+                    if (node != null)
+                        node.Value = value;
+                    else
+                        Add(new LuaAttribute(key, value));
+                }
             }
         }
 

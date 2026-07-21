@@ -4,8 +4,8 @@ namespace VNTextPatch.Shared.Scripts.Softpal
 {
     internal static class SoftpalOpcodes
     {
-        public static readonly Dictionary<short, (string, string)> Descriptions =
-            new Dictionary<short, (string, string)>
+        public static readonly Dictionary<short, (string?, string)> Descriptions =
+            new Dictionary<short, (string?, string)>
             {
                 { 0x0001, ("mov", "pp") },
                 { 0x0002, ("add", "pp") },
