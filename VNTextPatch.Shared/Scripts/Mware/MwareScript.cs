@@ -12,11 +12,11 @@ namespace VNTextPatch.Shared.Scripts.Mware
     {
         public string Extension => ".nut";
 
-        private byte[] _data;
+        private byte[] _data = [];
         private bool _hasHeader;
-        private List<SquirrelLiteralPool> _literalPools;
-        private List<SquirrelLiteralReference> _literalRefs;
-        private GuessedEncoding _encoding;
+        private List<SquirrelLiteralPool> _literalPools = [];
+        private List<SquirrelLiteralReference> _literalRefs = [];
+        private GuessedEncoding _encoding = new GuessedEncoding();
 
         public void Load(ScriptLocation location)
         {
@@ -26,7 +26,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
             _encoding = new GuessedEncoding();
 
             MemoryStream stream = new MemoryStream(_data);
-            using StreamWriter writer = null; //new StreamWriter(Path.ChangeExtension(location.ToFilePath(), ".txt"));
+            using StreamWriter? writer = null; //new StreamWriter(Path.ChangeExtension(location.ToFilePath(), ".txt"));
             SquirrelV2Disassembler disassembler = new SquirrelV2Disassembler(stream, _encoding, writer);
             disassembler.LiteralPoolEncountered += p => _literalPools.Add(p);
             disassembler.TextReferenceEncountered += r => _literalRefs.Add(r);
@@ -69,7 +69,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
 
         private List<SquirrelLiteralReference> MergeIntoLiteralPools(IEnumerable<ScriptString> strings)
         {
-            SquirrelLiteralPool currentPool = null;
+            SquirrelLiteralPool? currentPool = null;
             int lastLiteralIndex = -1;
             List<SquirrelLiteralReference> referencesToPatch = new List<SquirrelLiteralReference>();
 
@@ -175,7 +175,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
             while (true)
             {
                 int lineStartOffset = reader.Position;
-                string line = reader.ReadLine();
+                string? line = reader.ReadLine();
 
                 if (string.IsNullOrWhiteSpace(line))
                 {

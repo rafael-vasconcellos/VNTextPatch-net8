@@ -63,7 +63,7 @@ namespace VNTextPatch.Shared.Scripts
                 };
         }
 
-        public FolderScriptCollection(string folderPath, string extension, string format = null)
+        public FolderScriptCollection(string folderPath, string extension, string? format = null)
         {
             if (!Directory.Exists(folderPath))
                 throw new DirectoryNotFoundException($"{folderPath} does not exist");
@@ -88,7 +88,7 @@ namespace VNTextPatch.Shared.Scripts
             get;
         }
 
-        public string Format
+        public string? Format
         {
             get;
         }
@@ -133,7 +133,9 @@ namespace VNTextPatch.Shared.Scripts
         public void Add(string scriptName)
         {
             string filePath = Path.Combine(FolderPath, scriptName);
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            var directoryName = Path.GetDirectoryName(filePath) ??
+                throw new Exception($"Couldn't find directory path from {filePath}");
+            Directory.CreateDirectory(directoryName);
             File.Create(filePath).Close();
         }
 
@@ -141,7 +143,9 @@ namespace VNTextPatch.Shared.Scripts
         {
             string sourceFilePath = copyFrom.ToFilePath();
             string destFilePath = Path.Combine(FolderPath, copyFrom.ScriptName);
-            Directory.CreateDirectory(Path.GetDirectoryName(destFilePath));
+            var destDirectoryName = Path.GetDirectoryName(destFilePath) ??
+                throw new Exception($"Couldn't find directory path from {destFilePath}");;
+            Directory.CreateDirectory(destDirectoryName);
             File.Copy(sourceFilePath, destFilePath, true);
         }
 

@@ -40,8 +40,8 @@ namespace VNTextPatch.Shared.Scripts.Silkys
             get;
         }
 
-        public event Action<int> LittleEndianAddressEncountered;
-        public event Action<int> BigEndianAddressEncountered;
+        public event Action<int>? LittleEndianAddressEncountered;
+        public event Action<int>? BigEndianAddressEncountered;
 
         public abstract void ReadHeader();
 

@@ -28,8 +28,8 @@ namespace VNTextPatch.Shared.Scripts.Ethornell
         public delegate void CodeAddressHandler(int offset, int address);
         public delegate void StringAddressHandler(int offset, int address, ScriptStringType type);
 
-        public event CodeAddressHandler CodeAddressEncountered;
-        public event StringAddressHandler StringAddressEncountered;
+        public event CodeAddressHandler? CodeAddressEncountered;
+        public event StringAddressHandler? StringAddressEncountered;
 
         public abstract int CodeOffset { get; }
 

@@ -10,7 +10,7 @@ namespace VNTextPatch.Shared.Scripts.SystemNnn
     {
         public string Extension => ".spt";
 
-        private byte[] _data;
+        private byte[] _data = [];
         private int _messageTableIdx;
         private int _messageCount;
         private int _stringTableIdx;

@@ -15,7 +15,7 @@ namespace VNTextPatch.Shared.Scripts.SystemNnn
 
         public string Extension => ".nnn";
 
-        private byte[] _data;
+        private byte[] _data = [];
 
         public void Load(ScriptLocation location)
         {

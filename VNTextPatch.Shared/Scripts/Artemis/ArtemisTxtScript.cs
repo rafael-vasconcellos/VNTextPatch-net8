@@ -21,7 +21,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
             while (true)
             {
                 int lineStartPos = reader.Position;
-                string line = reader.ReadLine();
+                var line = reader.ReadLine();
                 if (line == null)
                     break;
 

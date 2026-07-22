@@ -7,9 +7,9 @@ namespace VNTextPatch.Shared.Scripts.TmrHiroAdvSystem
 {
     public class TmrHiroAdvSystemTextScript : IScript
     {
-        public string Extension => null;
+        public string Extension => null!;
 
-        private byte[] _data;
+        private byte[] _data = [];
 
         public void Load(ScriptLocation location)
         {

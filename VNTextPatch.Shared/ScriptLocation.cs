@@ -15,9 +15,11 @@ namespace VNTextPatch.Shared
         public IScriptCollection Collection;
         public string ScriptName;
 
-        public static ScriptLocation FromFilePath(string filePath, string format = null)
+        public static ScriptLocation FromFilePath(string filePath, string? format = null)
         {
-            IScriptCollection collection = new FolderScriptCollection(Path.GetDirectoryName(filePath), Path.GetExtension(filePath), format);
+            var directoryName = Path.GetDirectoryName(filePath) ??
+                throw new Exception($"Couldn't get directory path from {filePath}");
+            IScriptCollection collection = new FolderScriptCollection(directoryName, Path.GetExtension(filePath), format);
             return new ScriptLocation(collection, Path.GetFileName(filePath));
         }
 

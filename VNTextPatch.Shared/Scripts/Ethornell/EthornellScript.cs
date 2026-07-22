@@ -7,7 +7,7 @@ namespace VNTextPatch.Shared.Scripts.Ethornell
 {
     public class EthornellScript : IScript
     {
-        private byte[] _scenarioData;
+        private byte[] _scenarioData = [];
         private readonly List<EthornellScriptString> _strings = new List<EthornellScriptString>();
         private int _codeOffset;
         private int _codeLength;

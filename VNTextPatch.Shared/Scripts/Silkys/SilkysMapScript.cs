@@ -9,8 +9,8 @@ namespace VNTextPatch.Shared.Scripts.Silkys
     {
         public string Extension => ".map";
 
-        private byte[] _data;
-        private List<int> _messageOffsets;
+        private byte[] _data = [];
+        private List<int> _messageOffsets = [];
 
         public void Load(ScriptLocation location)
         {

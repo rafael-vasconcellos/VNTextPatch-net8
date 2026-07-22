@@ -629,7 +629,7 @@ namespace VNTextPatch.Shared.Scripts.Ethornell
             while (true)
             {
                 int opcode = _reader.ReadInt32();
-                Action specializedReader = _operandReaders.GetOrDefault(opcode);
+                var specializedReader = _operandReaders.GetOrDefault(opcode);
                 if (specializedReader != null)
                     specializedReader();
                 else

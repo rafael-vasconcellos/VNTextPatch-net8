@@ -275,7 +275,7 @@ namespace VNTextPatch.Shared.Scripts
 
         private class Message
         {
-            public string Text
+            public required string Text
             {
                 get;
                 set;

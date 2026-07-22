@@ -330,8 +330,7 @@ namespace VNTextPatch.Shared.Scripts.ShSystem
                 switch (operation)
                 {
                     case 0:
-                        if (index < 13)
-                            ;
+                        if (index < 13) {}
                         else if (index == 13)
                             _reader.Skip(1);
                         else if (index == 14)
@@ -344,8 +343,7 @@ namespace VNTextPatch.Shared.Scripts.ShSystem
                     case 1:
                     case 2:
                     case 3:
-                        if (index < 14)
-                            ;
+                        if (index < 14) {}
                         else if (index == 14)
                             _reader.Skip(1);
                         else

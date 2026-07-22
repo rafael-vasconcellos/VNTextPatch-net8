@@ -4,7 +4,7 @@ namespace VNTextPatch.Shared.Util
 {
     internal class TrackingStringReader : IDisposable
     {
-        private string _str;
+        private string? _str;
         private int _pos;
         private readonly int _length;
 
@@ -14,7 +14,7 @@ namespace VNTextPatch.Shared.Util
             _length = str.Length;
         }
 
-        public string ReadLine()
+        public string? ReadLine()
         {
             if (_str == null)
                 throw new ObjectDisposedException(nameof(TrackingStringReader));

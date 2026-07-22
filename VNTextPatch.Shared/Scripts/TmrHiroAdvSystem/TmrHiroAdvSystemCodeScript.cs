@@ -12,8 +12,8 @@ namespace VNTextPatch.Shared.Scripts.TmrHiroAdvSystem
     {
         public string Extension => ".srp";
 
-        private byte[] _data;
-        private List<HiroTextInstruction> _textInstrs;
+        private byte[] _data = [];
+        private List<HiroTextInstruction> _textInstrs = [];
 
         public void Load(ScriptLocation location)
         {
