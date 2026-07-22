@@ -11,7 +11,7 @@ namespace VNTextPatch.Shared.Scripts.AdvHd
 
         private static readonly string[] NameControlCodes = { "%LC", "%LF", "%LR" };
 
-        private byte[] _data;
+        private byte[] _data = [];
         private readonly List<int> _addressOffsets = new List<int>();
         private readonly List<Range> _textRanges = new List<Range>();
 

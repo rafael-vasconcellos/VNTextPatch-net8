@@ -8,7 +8,7 @@ namespace VNTextPatch.Shared.Scripts.RealLive
 {
     public class RealLiveScript : IScript
     {
-        private byte[] _scenario;
+        private byte[] _scenario = [];
         private int _codeOffset;
         private readonly List<int> _addressOffsets = new List<int>();
         private readonly List<Range> _textRanges = new List<Range>();
@@ -71,7 +71,7 @@ namespace VNTextPatch.Shared.Scripts.RealLive
                     if (!stringEnumerator.MoveNext())
                         throw new InvalidDataException("Not enough strings in translation file");
 
-                    string name = null;
+                    string? name = null;
                     if (stringEnumerator.Current.Type == ScriptStringType.CharacterName)
                     {
                         name = stringEnumerator.Current.Text;
@@ -97,7 +97,7 @@ namespace VNTextPatch.Shared.Scripts.RealLive
             }
         }
 
-        private static ArraySegment<byte> EncodeMessage(string name, string message)
+        private static ArraySegment<byte> EncodeMessage(string? name, string message)
         {
             MemoryStream stream = new MemoryStream();
             RealLiveAssembler assembler = new RealLiveAssembler(stream);

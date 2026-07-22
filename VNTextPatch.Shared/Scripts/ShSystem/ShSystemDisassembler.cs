@@ -151,8 +151,8 @@ namespace VNTextPatch.Shared.Scripts.ShSystem
             get;
         }
 
-        public event Action<int> AddressEncountered;
-        public event Action<int, List<ShValueRange>> ScriptCallEncountered;
+        public event Action<int>? AddressEncountered;
+        public event Action<int, List<ShValueRange>>? ScriptCallEncountered;
 
         public void Disassemble()
         {
@@ -163,7 +163,7 @@ namespace VNTextPatch.Shared.Scripts.ShSystem
                     _reader.Skip(2);        // Skip line number
 
                 byte opcode = _reader.ReadByte();
-                if (_opcodeHandlers.TryGetValue(opcode, out Action handler))
+                if (_opcodeHandlers.TryGetValue(opcode, out Action? handler))
                     handler();
                 else
                     SkipOperands(OperandTemplates[opcode]);

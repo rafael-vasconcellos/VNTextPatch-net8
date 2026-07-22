@@ -17,7 +17,7 @@ namespace VNTextPatch.Shared.Scripts.Majiro
             _reader = new BinaryReader(stream);
         }
 
-        public event Action<int> RelativeAddressEncountered;
+        public event Action<int>? RelativeAddressEncountered;
 
         public (short, List<object>) ReadInstruction()
         {

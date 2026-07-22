@@ -8,8 +8,8 @@ namespace VNTextPatch.Shared.Scripts.Softpal
 {
     public class SoftpalScript : IScript
     {
-        private byte[] _code;
-        private byte[] _text;
+        private byte[] _code = [];
+        private byte[] _text = [];
         private readonly List<TextOperand> _textOperands = new List<TextOperand>();
 
         public string Extension => ".src";
@@ -19,7 +19,8 @@ namespace VNTextPatch.Shared.Scripts.Softpal
             string codeFilePath = location.ToFilePath();
             _code = File.ReadAllBytes(codeFilePath);
 
-            string folderPath = Path.GetDirectoryName(codeFilePath);
+            string folderPath = Path.GetDirectoryName(codeFilePath) ??
+                throw new Exception($"failed to get folder path out of {codeFilePath}");
             string textFilePath = Path.Combine(folderPath, "TEXT.DAT");
             if (!File.Exists(textFilePath))
                 throw new FileNotFoundException($"TEXT.DAT not found at {textFilePath}");
@@ -34,7 +35,7 @@ namespace VNTextPatch.Shared.Scripts.Softpal
 
             _textOperands.Clear();
             using MemoryStream codeStream = new MemoryStream(_code);
-            using StreamWriter writer = GetDisassemblyWriter(codeFilePath);
+            using StreamWriter? writer = GetDisassemblyWriter(codeFilePath);
             SoftpalDisassembler disassembler = new SoftpalDisassembler(codeStream, labelOffsets, writer);
             disassembler.TextAddressEncountered += (offset, type) => _textOperands.Add(new TextOperand(offset, type));
             disassembler.Disassemble();
@@ -62,7 +63,9 @@ namespace VNTextPatch.Shared.Scripts.Softpal
             BinaryWriter codeWriter = new BinaryWriter(codeStream);
             codeWriter.Write(_code);
 
-            string textFilePath = Path.Combine(Path.GetDirectoryName(codeFilePath), "TEXT.DAT");
+            var dirName = Path.GetDirectoryName(codeFilePath) ??
+                throw new Exception($"failed to get folder path out of {codeFilePath}");
+            string textFilePath = Path.Combine(dirName, "TEXT.DAT");
             using Stream textStream = File.Open(textFilePath, FileMode.Create, FileAccess.Write);
             BinaryWriter textWriter = new BinaryWriter(textStream);
             textWriter.Write(_text);
@@ -110,12 +113,12 @@ namespace VNTextPatch.Shared.Scripts.Softpal
             return labelOffsets;
         }
 
-        private static StreamWriter GetDisassemblyWriter(string codeFilePath)
+        private static StreamWriter? GetDisassemblyWriter(string codeFilePath)
         {
             return null;
 
-            Stream stream = File.Open(Path.ChangeExtension(codeFilePath, ".txt"), FileMode.Create, FileAccess.Write);
-            return new StreamWriter(stream);
+            /* Stream stream = File.Open(Path.ChangeExtension(codeFilePath, ".txt"), FileMode.Create, FileAccess.Write);
+            return new StreamWriter(stream); */
         }
 
         private readonly struct TextOperand

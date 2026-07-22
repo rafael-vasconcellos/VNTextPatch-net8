@@ -20,7 +20,8 @@ namespace VNTextPatch.Shared.Scripts
 
             if (!File.Exists(filePath))
             {
-                string folderPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                var folderPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??
+                    throw new Exception($"failed to get folder path out of {filePath}");
                 string templateFilePath = Path.Combine(folderPath, "template.xlsx");
                 File.Copy(templateFilePath, filePath);
                 _isEmpty = true;
@@ -79,7 +80,7 @@ namespace VNTextPatch.Shared.Scripts
 
         public void Dispose()
         {
-            _script = null;
+            _script = null!;
 
             if (_workbook != null)
             {
@@ -87,7 +88,7 @@ namespace VNTextPatch.Shared.Scripts
                 {
                     _workbook.Write(stream);
                     _workbook.Close();
-                    _workbook = null;
+                    _workbook.Dispose();
                 }
                 File.Delete(Name);
                 File.Move(Name + ".temp", Name);

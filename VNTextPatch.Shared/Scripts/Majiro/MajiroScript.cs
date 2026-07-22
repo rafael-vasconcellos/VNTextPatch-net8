@@ -12,7 +12,7 @@ namespace VNTextPatch.Shared.Scripts.Majiro
     {
         public string Extension => ".mjo";
 
-        private byte[] _data;
+        private byte[] _data = [];
         private int _codeOffset;
         private int _codeSize;
         private int _entryPointAddr;
@@ -138,7 +138,7 @@ namespace VNTextPatch.Shared.Scripts.Majiro
 
             Stack<MajiroTextCodeRange> ldstrRanges = new Stack<MajiroTextCodeRange>();
             int textStartOffset = -1;
-            string currentText = null;
+            string? currentText = null;
             while (stream.Position < stream.Length)
             {
                 int instrOffset = (int)stream.Position;
@@ -289,7 +289,7 @@ namespace VNTextPatch.Shared.Scripts.Majiro
             using IEnumerator<ScriptString> stringEnumerator = strings.GetEnumerator();
             foreach (MajiroTextCodeRange range in _textCodeRanges)
             {
-                string newText = null;
+                string? newText = null;
                 foreach (ScriptString origString in GetScriptStrings(range))
                 {
                     if (!stringEnumerator.MoveNext())
@@ -322,8 +322,8 @@ namespace VNTextPatch.Shared.Scripts.Majiro
 
                 byte[] newCode = range.Type switch
                                  {
-                                     MajiroTextCodeType.Ldstr => AssembleLdstr(newText),
-                                     MajiroTextCodeType.Text => AssembleText(newText)
+                                     MajiroTextCodeType.Ldstr => AssembleLdstr(newText!),
+                                     MajiroTextCodeType.Text => AssembleText(newText!)
                                  };
                 patcher.ReplaceBytes(range.Length, newCode);
             }

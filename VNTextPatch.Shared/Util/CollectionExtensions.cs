@@ -8,6 +8,8 @@ namespace VNTextPatch.Shared.Util
     {
         public static T Get<T>(this ArraySegment<T> segment, int index)
         {
+            if (segment.Array is null)
+                throw new InvalidOperationException("ArraySegment does not have an array.");
             return segment.Array[segment.Offset + index];
         }
 
@@ -20,20 +22,19 @@ namespace VNTextPatch.Shared.Util
             return true;
         }
 
-        public static TValue GetOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue defaultValue = default(TValue))
+        public static TValue GetOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue defaultValue = default!)
         {
-            return dict.TryGetValue(key, out TValue value) ? value : defaultValue;
+            return dict.TryGetValue(key, out var value) ? value : defaultValue;
         }
 
         public static TValue GetOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TValue> getDefault)
         {
-            return dict.TryGetValue(key, out TValue value) ? value : getDefault();
+            return dict.TryGetValue(key, out var value) ? value : getDefault();
         }
 
         public static TValue FetchValue<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TValue> getValue)
         {
-            TValue value;
-            if (!dict.TryGetValue(key, out value))
+            if (!dict.TryGetValue(key, out var value))
             {
                 value = getValue();
                 dict.Add(key, value);
@@ -43,8 +44,7 @@ namespace VNTextPatch.Shared.Util
 
         public static TValue FetchValue<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TKey, TValue> getValue)
         {
-            TValue value;
-            if (!dict.TryGetValue(key, out value))
+            if (!dict.TryGetValue(key, out var value))
             {
                 value = getValue(key);
                 dict.Add(key, value);
@@ -57,7 +57,7 @@ namespace VNTextPatch.Shared.Util
             int index = 0;
             foreach (T i in items)
             {
-                if (item.Equals(i))
+                if (item != null && item.Equals(i))
                     return index;
 
                 index++;

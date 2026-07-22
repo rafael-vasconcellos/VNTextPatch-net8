@@ -84,8 +84,8 @@ namespace VNTextPatch.Shared.Scripts.RealLive
             get;
         }
 
-        public event Action<int> AddressEncountered;
-        public event Action<Range> TextEncountered;
+        public event Action<int>? AddressEncountered;
+        public event Action<Range>? TextEncountered;
 
         private bool Read()
         {
@@ -190,7 +190,9 @@ namespace VNTextPatch.Shared.Scripts.RealLive
 
         private bool IsCurrentFunctionOneOf(Dictionary<byte, ushort[]> functions)
         {
-            ushort[] functionsOfModule;
+            if (!_currentModule.HasValue || !_currentFunction.HasValue)
+                return false;
+            ushort[]? functionsOfModule;
             return functions.TryGetValue(_currentModule.Value, out functionsOfModule) && functionsOfModule.Contains(_currentFunction.Value);
         }
 

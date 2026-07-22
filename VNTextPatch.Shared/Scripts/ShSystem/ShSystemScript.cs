@@ -9,9 +9,9 @@ namespace VNTextPatch.Shared.Scripts.ShSystem
     {
         public string Extension => ".hst";
 
-        private byte[] _data;
-        private List<int> _addressOffsets;
-        private List<int> _stringOffsets;
+        private byte[] _data = [];
+        private List<int> _addressOffsets = [];
+        private List<int> _stringOffsets = [];
 
         public void Load(ScriptLocation location)
         {

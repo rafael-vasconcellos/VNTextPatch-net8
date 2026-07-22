@@ -23,7 +23,7 @@ namespace VNTextPatch.Shared.Scripts.Propeller
 
         public string Extension => ".msc";
 
-        private byte[] _data;
+        private byte[] _data = [];
         private int _codeOffset;
         private readonly List<int> _addressOffsets = new List<int>();
         private readonly List<Range> _textRanges = new List<Range>();
@@ -68,7 +68,7 @@ namespace VNTextPatch.Shared.Scripts.Propeller
                 if (!stringEnumerator.MoveNext())
                     throw new Exception("Not enough strings in translation");
 
-                string names = null;
+                string? names = null;
                 while (stringEnumerator.Current.Type == ScriptStringType.CharacterName)
                 {
                     names ??= $"一{stringEnumerator.Current.Text}一";

@@ -13,14 +13,14 @@ namespace VNTextPatch.Shared.Scripts.Softpal
         private readonly Stream _stream;
         private readonly List<int> _labelOffsets;
         private readonly BinaryReader _reader;
-        private readonly StreamWriter _writer;
+        private readonly StreamWriter? _writer;
         private readonly Dictionary<short, Action<Instruction>> _opcodeHandlers;
 
         private readonly Dictionary<int, UserMessageFunction> _userMessageFuncs = new Dictionary<int, UserMessageFunction>();
         private readonly Dictionary<int, Operand> _variables = new Dictionary<int, Operand>();
         private readonly Stack<Operand> _stack = new Stack<Operand>();
 
-        public SoftpalDisassembler(Stream stream, List<int> labelOffsets, StreamWriter writer = null)
+        public SoftpalDisassembler(Stream stream, List<int> labelOffsets, StreamWriter? writer = null)
         {
             _stream = stream;
             _labelOffsets = labelOffsets;
@@ -54,7 +54,7 @@ namespace VNTextPatch.Shared.Scripts.Softpal
                 {
                     HandleMessageInstruction();
                 }
-                else if (_opcodeHandlers.TryGetValue(instr.Opcode, out Action<Instruction> handler))
+                else if (_opcodeHandlers.TryGetValue(instr.Opcode, out var handler))
                 {
                     handler(instr);
                 }
@@ -66,7 +66,7 @@ namespace VNTextPatch.Shared.Scripts.Softpal
             }
         }
 
-        public event Action<int, ScriptStringType> TextAddressEncountered;
+        public event Action<int, ScriptStringType>? TextAddressEncountered;
 
         private void FindUserMessageFunctions()
         {
@@ -155,7 +155,7 @@ namespace VNTextPatch.Shared.Scripts.Softpal
                     return;
 
                 int targetOffset = _labelOffsets[instr.Operands[0].Value - 1];
-                UserMessageFunction messageFunc = _userMessageFuncs.GetOrDefault(targetOffset);
+                var messageFunc = _userMessageFuncs.GetOrDefault(targetOffset);
                 if (messageFunc == null || _stack.Count < messageFunc.NumArgs)
                     return;
 
@@ -295,10 +295,13 @@ namespace VNTextPatch.Shared.Scripts.Softpal
 
         private void WriteInstruction(Instruction instr)
         {
-            (string opcodeName, string operandTypes) = SoftpalOpcodes.Descriptions[instr.Opcode];
+            (var opcodeName, var operandTypes) = SoftpalOpcodes.Descriptions[instr.Opcode];
             opcodeName ??= instr.Opcode.ToString("X04");
-            _writer.Write($"{instr.Offset:X08} {opcodeName}");
 
+            if (_writer == null)
+                throw new Exception("_writter is null");
+
+            _writer.Write($"{instr.Offset:X08} {opcodeName}");
             for (int i = 0; i < instr.Operands.Count; i++)
             {
                 _writer.Write(i == 0 ? " " : ", ");

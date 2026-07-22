@@ -14,8 +14,8 @@ namespace VNTextPatch.Shared.Scripts
         public string Extension => ".dat";
 
         private byte _encryptionKey;
-        private List<string> _choices;
-        private List<MessageGroup> _messageGroups;
+        private List<string> _choices = [];
+        private List<MessageGroup> _messageGroups = [];
 
         public void Load(ScriptLocation location)
         {
@@ -160,7 +160,7 @@ namespace VNTextPatch.Shared.Scripts
         private MessageGroup ReadMessageGroup(BinaryReader reader, List<string> names, List<Message> messages)
         {
             int nameIdx = reader.ReadInt32();
-            string name = nameIdx >= 0 ? names[nameIdx] : null;
+            string? name = nameIdx >= 0 ? names[nameIdx] : null;
 
             MessageGroup group = new MessageGroup { Name = name };
 
@@ -261,7 +261,7 @@ namespace VNTextPatch.Shared.Scripts
 
         private class MessageGroup
         {
-            public string Name
+            public string? Name
             {
                 get;
                 set;

@@ -250,13 +250,13 @@ namespace VNTextPatch.Shared.Scripts.Kirikiri
                 if (GetCommandName(command) != "ruby")
                     continue;
 
-                string ruby = GetAttributeValue(command, "text");
+                var ruby = GetAttributeValue(command, "text");
                 if (ruby == null)
                     continue;
 
-                string chars = GetAttributeValue(command, "char");
+                var chars = GetAttributeValue(command, "char");
                 int textLength;
-                string text = null;
+                string? text = null;
                 if (chars == null)
                     textLength = 1;
                 else if (!int.TryParse(chars, out textLength))
@@ -288,7 +288,7 @@ namespace VNTextPatch.Shared.Scripts.Kirikiri
             return command.Groups["command"].Value;
         }
 
-        private static string GetAttributeValue(Match command, string name)
+        private static string? GetAttributeValue(Match command, string name)
         {
             CaptureCollection names = command.Groups["attrname"].Captures;
             CaptureCollection values = command.Groups["attrvalue"].Captures;

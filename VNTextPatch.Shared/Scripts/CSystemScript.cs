@@ -7,8 +7,8 @@ namespace VNTextPatch.Shared.Scripts
 {
     internal class CSystemScript : IScript
     {
-        private byte[] _data;
-        private List<CSystemStringRange> _stringRanges;
+        private byte[] _data = [];
+        private List<CSystemStringRange> _stringRanges = [];
 
         public string Extension => ".a0";
 
@@ -47,7 +47,7 @@ namespace VNTextPatch.Shared.Scripts
             int rangeIdx = 0;
             while (rangeIdx < _stringRanges.Count)
             {
-                string text = null;
+                string? text = null;
                 do
                 {
                     if (text != null)
@@ -73,7 +73,7 @@ namespace VNTextPatch.Shared.Scripts
                 _data[range.XorKeyOffset] = 0;
             }
 
-            byte[] plainRuby = null;
+            byte[]? plainRuby = null;
             int binRubyEnd = range.TextOffset;
             int plainRubyEnd = 0;
             for (int i = 0; i < range.TextLength; i += 2)

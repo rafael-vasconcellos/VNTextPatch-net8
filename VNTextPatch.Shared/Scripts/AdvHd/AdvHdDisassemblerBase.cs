@@ -28,15 +28,15 @@ namespace VNTextPatch.Shared.Scripts.AdvHd
                               };
         }
 
-        public event Action<int> AddressEncountered;
-        public event Action<Range> TextEncountered;
+        public event Action<int>? AddressEncountered;
+        public event Action<Range>? TextEncountered;
 
         public void Disassemble()
         {
             while (_stream.Position < _stream.Length - 8)
             {
                 (byte opcode, List<object> operands) = ReadInstruction();
-                if (_opcodeHandlers.TryGetValue(opcode, out Action<List<object>> handler))
+                if (_opcodeHandlers.TryGetValue(opcode, out var handler))
                     handler(operands);
             }
         }
@@ -49,7 +49,7 @@ namespace VNTextPatch.Shared.Scripts.AdvHd
             {
                 int offset = (int)_stream.Position;
                 (byte opcode, List<object> operands) = ReadInstruction();
-                if (_opcodeHandlers.TryGetValue(opcode, out Action<List<object>> handler))
+                if (_opcodeHandlers.TryGetValue(opcode, out var handler))
                     handler(operands);
 
                 result.AppendLine($"{offset:X08}: {opcode:X02} {string.Join(", ", operands.Select(OperandToString))}");
@@ -76,7 +76,7 @@ namespace VNTextPatch.Shared.Scripts.AdvHd
                     return "\"" + str + "\"";
 
                 default:
-                    return o.ToString();
+                    return o.ToString()!;
             }
         }
 
@@ -123,7 +123,7 @@ namespace VNTextPatch.Shared.Scripts.AdvHd
         private (byte, List<object>) ReadInstruction()
         {
             byte opcode = _reader.ReadByte();
-            string operandTemplate = _operandTemplates.GetOrDefault(opcode);
+            var operandTemplate = _operandTemplates.GetOrDefault(opcode);
             if (operandTemplate == null)
                 throw new InvalidDataException($"Invalid opcode encountered: {opcode:X02}");
 

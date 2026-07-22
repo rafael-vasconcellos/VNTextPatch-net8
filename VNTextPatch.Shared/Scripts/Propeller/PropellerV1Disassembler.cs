@@ -173,8 +173,8 @@ namespace VNTextPatch.Shared.Scripts.Propeller
             get;
         }
 
-        public event Action<int> AddressEncountered;
-        public event Action<Range> TextEncountered;
+        public event Action<int>? AddressEncountered;
+        public event Action<Range>? TextEncountered;
 
         public void Disassemble()
         {
@@ -217,7 +217,7 @@ namespace VNTextPatch.Shared.Scripts.Propeller
             byte opcodeLow = _reader.ReadByte();
             short opcode = (short)((opcodeHigh << 8) | opcodeLow);
 
-            if (!OperandTemplates.TryGetValue(opcode, out string operandTypes))
+            if (!OperandTemplates.TryGetValue(opcode, out string? operandTypes))
                 throw new InvalidDataException($"Unsupported opcode {opcode:X04} encountered");
 
             object[] operands = new object[operandTypes.Length];
@@ -232,7 +232,7 @@ namespace VNTextPatch.Shared.Scripts.Propeller
                               };
             }
 
-            if (_opcodeHandlers.TryGetValue(opcode, out Action<object[]> handler))
+            if (_opcodeHandlers.TryGetValue(opcode, out Action<object[]>? handler))
                 handler(operands);
         }
 
