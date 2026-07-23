@@ -83,7 +83,8 @@ namespace VNTextPatch.Shared.Scripts.SystemNnn
             patcher.CopyUpTo(_data.Length);
             PatchAddresses(patcher);
 
-            outputStream.TryGetBuffer(out ArraySegment<byte> outSegment);
+            if (!outputStream.TryGetBuffer(out ArraySegment<byte> outSegment) || outSegment.Array is null)
+                throw new Exception("Failed to get buffer.");
             BinaryUtil.Xor(outSegment.Array, outSegment.Offset, outSegment.Count, 0xFF);
             using Stream outputFileStream = File.Open(location.ToFilePath(), FileMode.Create, FileAccess.Write);
             outputFileStream.Write(outSegment.Array, outSegment.Offset, outSegment.Count);
@@ -100,7 +101,9 @@ namespace VNTextPatch.Shared.Scripts.SystemNnn
                                       {
                                           SptCode.SystemCommandPrint => NnnMessageType.Print,
                                           SptCode.SystemCommandLPrint => NnnMessageType.LPrint,
-                                          SptCode.SystemCommandAppend => NnnMessageType.Append
+                                          SptCode.SystemCommandAppend => NnnMessageType.Append,
+                                          _ => throw new InvalidOperationException(
+                                                $"Unsupported TextReference type: {item.Code.GetType().Name}")
                                       };
 
                 byte[] textBytes = FormatFileText(stringEnumerator, type);

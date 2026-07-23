@@ -60,7 +60,7 @@ namespace VNTextPatch.Shared.Scripts.Kirikiri
             while (true)
             {
                 int lineOffset = reader.Position;
-                string line = reader.ReadLine();
+                string? line = reader.ReadLine();
                 if (line == null)
                     break;
 

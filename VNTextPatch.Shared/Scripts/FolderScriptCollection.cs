@@ -95,7 +95,7 @@ namespace VNTextPatch.Shared.Scripts
 
         public IScript GetTemporaryScript()
         {
-            IScript script;
+            IScript? script;
             if (Format != null)
             {
                 string typeName = Format + "Script";

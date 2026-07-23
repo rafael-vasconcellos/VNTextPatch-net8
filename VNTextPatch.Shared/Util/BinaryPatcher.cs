@@ -63,6 +63,9 @@ namespace VNTextPatch.Shared.Util
 
         public void ReplaceBytes(int originalLength, ArraySegment<byte> newData)
         {
+            if (newData.Array is null)
+                throw new ArgumentException("ArraySegment must have a non-null backing array.", nameof(newData));
+
             ReplaceBytes(originalLength, newData.Array, newData.Offset, newData.Count);
         }
 

@@ -10,7 +10,7 @@ namespace VNTextPatch.Shared.Util
     {
         public static TResponse ExecuteRateLimited<TResponse>(this ClientServiceRequest<TResponse> request)
         {
-            ExceptionDispatchInfo lastException = null;
+            ExceptionDispatchInfo? lastException = null;
             for (int i = 0; i < 5; i++)
             {
                 try

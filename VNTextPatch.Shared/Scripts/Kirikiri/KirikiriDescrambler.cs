@@ -38,34 +38,43 @@ namespace VNTextPatch.Shared.Scripts.Kirikiri
             }
         }
 
+        private static byte[] RequireArray(ArraySegment<byte> data) =>
+            data.Array ?? throw new InvalidDataException("Scrambled Kirikiri data has no underlying array.");
+
         private static ArraySegment<byte> DescrambleMode0(ArraySegment<byte> data)
         {
+            byte[] array = RequireArray(data);
+
             for (int i = data.Offset + 5; i < data.Offset + data.Count; i += 2)
             {
-                if (data.Array[i + 1] == 0 && data.Array[i] < 0x20)
+                if (array[i + 1] == 0 && array[i] < 0x20)
                     continue;
 
-                data.Array[i + 1] ^= (byte)(data.Array[i] & 0xFE);
-                data.Array[i] ^= 1;
+                array[i + 1] ^= (byte)(array[i] & 0xFE);
+                array[i] ^= 1;
             }
-            return new ArraySegment<byte>(data.Array, data.Offset + 3, data.Count - 3);
+            return new ArraySegment<byte>(array, data.Offset + 3, data.Count - 3);
         }
 
         private static ArraySegment<byte> DescrambleMode1(ArraySegment<byte> data)
         {
+            byte[] array = RequireArray(data);
+
             for (int i = data.Offset + 5; i < data.Offset + data.Count; i += 2)
             {
-                char c = (char)(data.Array[i] | (data.Array[i + 1] << 8));
+                char c = (char)(array[i] | (array[i + 1] << 8));
                 c = (char)(((c & 0xAAAA) >> 1) | ((c & 0x5555) << 1));
-                data.Array[i] = (byte)c;
-                data.Array[i + 1] = (byte)(c >> 8);
+                array[i] = (byte)c;
+                array[i + 1] = (byte)(c >> 8);
             }
-            return new ArraySegment<byte>(data.Array, data.Offset + 3, data.Count - 3);
+            return new ArraySegment<byte>(array, data.Offset + 3, data.Count - 3);
         }
 
         private static ArraySegment<byte> Decompress(ArraySegment<byte> data)
         {
-            MemoryStream compressedStream = new MemoryStream(data.Array, data.Offset + 5, data.Count - 5);
+            byte[] array = RequireArray(data);
+
+            MemoryStream compressedStream = new MemoryStream(array, data.Offset + 5, data.Count - 5);
             BinaryReader compressedReader = new BinaryReader(compressedStream);
 
             int compressedLength = (int)compressedReader.ReadInt64();

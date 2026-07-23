@@ -29,7 +29,9 @@ namespace VNTextPatch.Shared.Scripts.Artemis
                 string text = textRef switch
                               {
                                   PrintCommandRange printRange => PrintCommandsToText(printRange),
-                                  AttributeReference attrRef => attrRef.Command.Attributes[attrRef.AttributeName]
+                                  AttributeReference attrRef => attrRef.Command.Attributes[attrRef.AttributeName],
+                                  _ => throw new InvalidOperationException(
+                                        $"Unsupported TextReference type: {textRef?.GetType().Name}")
                               };
                 yield return new ScriptString(text, textRef.Type);
             }

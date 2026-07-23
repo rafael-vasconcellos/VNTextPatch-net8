@@ -4,17 +4,14 @@ namespace VNTextPatch.Shared.Util
 {
     internal class EnumeratorList<T>
     {
-        private readonly List<IEnumerator<T>> _enumerators = new List<IEnumerator<T>>();
+        private readonly List<IEnumerator<T>?> _enumerators = [];
 
         public void Add(IEnumerable<T> enumerable)
         {
             _enumerators.Add(enumerable.GetEnumerator());
         }
 
-        public int Count
-        {
-            get { return _enumerators.Count; }
-        }
+        public int Count => _enumerators.Count;
 
         public bool MoveNext()
         {
@@ -24,18 +21,20 @@ namespace VNTextPatch.Shared.Util
                 if (!MoveNext(i))
                     success = false;
             }
-            
+
             return success;
         }
 
         public bool MoveNext(int index)
         {
-            if (_enumerators[index] == null)
+            IEnumerator<T>? enumerator = _enumerators[index];
+
+            if (enumerator is null)
                 return false;
 
-            if (!_enumerators[index].MoveNext())
+            if (!enumerator.MoveNext())
             {
-                _enumerators[index].Dispose();
+                enumerator.Dispose();
                 _enumerators[index] = null;
                 return false;
             }
@@ -45,17 +44,23 @@ namespace VNTextPatch.Shared.Util
 
         public bool IsOpen(int index)
         {
-            return _enumerators[index] != null;
+            return _enumerators[index] is not null;
         }
 
         public T GetCurrent(int index)
         {
-            return _enumerators[index].Current;
+            IEnumerator<T>? enumerator = _enumerators[index];
+
+            if (enumerator is null)
+                throw new InvalidOperationException("The enumerator has already been disposed.");
+
+            return enumerator.Current;
         }
 
         public T GetCurrentOrDefault(int index, T defaultValue)
         {
-            return _enumerators[index] != null ? _enumerators[index].Current : defaultValue;
+            var enumerator = _enumerators[index];
+            return enumerator != null ? enumerator.Current : defaultValue;
         }
     }
 }

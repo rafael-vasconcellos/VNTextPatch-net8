@@ -126,7 +126,7 @@ namespace VNTextPatch.Shared.Util
 
         public static void Write(this BinaryWriter writer, ArraySegment<byte> data)
         {
-            writer.Write(data.Array, data.Offset, data.Count);
+            writer.Write(data.AsSpan());
         }
 
         public static void WriteArray(this BinaryWriter writer, byte[] items)
