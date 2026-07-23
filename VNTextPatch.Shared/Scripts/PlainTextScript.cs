@@ -8,7 +8,7 @@ namespace VNTextPatch.Shared.Scripts
 {
     public abstract class PlainTextScript : IScript
     {
-        private string _script;
+        private string _script = null!;
 
         public abstract string Extension { get; }
 
@@ -20,7 +20,7 @@ namespace VNTextPatch.Shared.Scripts
 
             Encoding encoding = GetReadEncoding(data);
             int preambleLength = encoding.GetPreamble().Length;
-            _script = encoding.GetString(data.Array, data.Offset + preambleLength, data.Count - preambleLength);
+            _script = encoding.GetString(data.AsSpan(preambleLength, data.Count - preambleLength));
             _script = PreprocessScript(_script);
         }
 
@@ -67,7 +67,7 @@ namespace VNTextPatch.Shared.Scripts
             data = EncryptScript(data);
             using (Stream outputFileStream = File.Open(location.ToFilePath(), FileMode.Create, FileAccess.Write))
             {
-                outputFileStream.Write(data.Array, data.Offset, data.Count);
+                outputFileStream.Write(data.AsSpan());
             }
         }
 

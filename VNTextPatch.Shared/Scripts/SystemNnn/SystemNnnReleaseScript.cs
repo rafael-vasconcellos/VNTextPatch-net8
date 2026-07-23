@@ -100,7 +100,9 @@ namespace VNTextPatch.Shared.Scripts.SystemNnn
                                       {
                                           SptCode.SystemCommandPrint => NnnMessageType.Print,
                                           SptCode.SystemCommandLPrint => NnnMessageType.LPrint,
-                                          SptCode.SystemCommandAppend => NnnMessageType.Append
+                                          SptCode.SystemCommandAppend => NnnMessageType.Append,
+                                          _ => throw new InvalidOperationException(
+                                                $"Unsupported TextReference type: {item.Code.GetType().Name}")
                                       };
 
                 byte[] textBytes = FormatFileText(stringEnumerator, type);

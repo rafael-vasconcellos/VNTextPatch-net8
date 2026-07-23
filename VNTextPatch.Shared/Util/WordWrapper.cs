@@ -10,7 +10,7 @@ namespace VNTextPatch.Shared.Util
     {
         private static readonly char[] LineBreakChars = { ' ', '-' };
 
-        public string Wrap(string text, Regex controlCodePattern = null, string lineBreak = "\r\n")
+        public string Wrap(string text, Regex? controlCodePattern = null, string lineBreak = "\r\n")
         {
             StringBuilder result = new StringBuilder();
 
@@ -38,7 +38,7 @@ namespace VNTextPatch.Shared.Util
             return result.ToString();
         }
 
-        public IEnumerable<int> GetWrapPositions(string text, Regex controlCodePattern)
+        public IEnumerable<int> GetWrapPositions(string text, Regex? controlCodePattern)
         {
             if (controlCodePattern == null)
             {

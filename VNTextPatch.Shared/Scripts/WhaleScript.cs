@@ -9,7 +9,7 @@ namespace VNTextPatch.Shared.Scripts
     {
         private static readonly string[] MessageCommands = { "CS", "MS.HS" };
 
-        public override string Extension => null;
+        public override string Extension => null!;
 
         protected override IEnumerable<Range> GetRanges(string script)
         {
@@ -17,7 +17,7 @@ namespace VNTextPatch.Shared.Scripts
             while (true)
             {
                 int lineStartPos = reader.Position;
-                string line = reader.ReadLine();
+                string? line = reader.ReadLine();
                 if (line == null)
                     break;
 

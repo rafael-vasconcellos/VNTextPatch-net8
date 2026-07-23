@@ -653,7 +653,7 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
             while (_stream.Position < StringPoolRange.Offset)
             {
                 AgeInstruction instr = ReadInstruction();
-                AddressOperands.TryGetValue(instr.Opcode, out var addressOperands);
+                int[]? addressOperands = AddressOperands.GetOrDefault(instr.Opcode);
 
                 for (int i = 0; i < instr.Operands.Count; i++)
                 {
@@ -718,7 +718,8 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
                 throw new Exception("_writer is null");
 
             _writer.Write($"{instr.Offset:X08} {instr.Opcode:X04}");
-            AddressOperands.TryGetValue(instr.Opcode, out var addressOperands);
+
+            int[]? addressOperands = AddressOperands.GetOrDefault(instr.Opcode);
             for (int i = 0; i < instr.Operands.Count; i++)
             {
                 _writer.Write(i == 0 ? " " : ", ");

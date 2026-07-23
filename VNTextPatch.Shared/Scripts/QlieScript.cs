@@ -11,7 +11,7 @@ namespace VNTextPatch.Shared.Scripts
     {
         public override string Extension => ".s";
 
-        private Encoding _writeEncoding;
+        private Encoding _writeEncoding = null!;
 
         protected override Encoding GetReadEncoding(ArraySegment<byte> data)
         {
@@ -38,7 +38,7 @@ namespace VNTextPatch.Shared.Scripts
             while (true)
             {
                 int lineStartPos = reader.Position;
-                string line = reader.ReadLine();
+                string? line = reader.ReadLine();
                 if (line == null)
                     break;
 

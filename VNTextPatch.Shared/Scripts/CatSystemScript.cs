@@ -13,7 +13,7 @@ namespace VNTextPatch.Shared.Scripts
     {
         private static readonly byte[] Magic = { 0x43, 0x61, 0x74, 0x53, 0x63, 0x65, 0x6E, 0x65 };
 
-        private byte[] _script;
+        private byte[] _script = [];
         private int _stringAddressesOffset;
         private int _stringsOffset;
         private int _numStrings;
