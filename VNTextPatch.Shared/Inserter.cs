@@ -27,7 +27,7 @@ namespace VNTextPatch.Shared
             _textScript = textCollection.GetTemporaryScript();
         }
 
-        public ILineStatistics Statistics
+        public ILineStatistics? Statistics
         {
             get { return _textScript as ILineStatistics; }
         }

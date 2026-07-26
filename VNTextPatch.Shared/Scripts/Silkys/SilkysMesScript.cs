@@ -18,9 +18,9 @@ namespace VNTextPatch.Shared.Scripts.Silkys
             public const byte Ruby = 0x01;
         }
 
-        private byte[] _data;
-        private SilkysDisassemblerBase _disassembler;
-        private SilkysOpcodes _opcodes;
+        private byte[] _data = [];
+        private SilkysDisassemblerBase? _disassembler;
+        private SilkysOpcodes _opcodes = null!;
         private int _codeOffset;
         private readonly List<int> _littleEndianAddressOffsets = new List<int>();
         private readonly List<int> _bigEndianAddressOffsets = new List<int>();
@@ -51,6 +51,9 @@ namespace VNTextPatch.Shared.Scripts.Silkys
             Stack<object> stack = new Stack<object>();
             int messageStartOffset = -1;
             bool inRuby = false;
+
+            if (_disassembler == null)
+                return;
 
             _disassembler.Stream.Position = _codeOffset;
             while (_disassembler.Stream.Position < _disassembler.Stream.Length)
@@ -116,6 +119,7 @@ namespace VNTextPatch.Shared.Scripts.Silkys
                      stack.Count == 3 &&
                      stack.Pop() is int funcId &&
                      stack.Pop() is int execId &&
+                     _disassembler != null &&
                      _disassembler.Syscalls.Any(s => funcId == s.Exec && execId == s.ExecSetCharacterName) &&
                      stack.Pop() is Range name)
             {
@@ -211,6 +215,9 @@ namespace VNTextPatch.Shared.Scripts.Silkys
 
         private string CodeToText(Range codeRange)
         {
+            if (_disassembler == null)
+                throw new Exception("_disassembler is null");
+
             StringBuilder result = new StringBuilder();
             _disassembler.Stream.Position = codeRange.Offset;
             while (_disassembler.Stream.Position < codeRange.Offset + codeRange.Length)
@@ -315,7 +322,7 @@ namespace VNTextPatch.Shared.Scripts.Silkys
             return result.ToArray();
         }
 
-        private SilkysDisassemblerBase GetDisassembler()
+        private SilkysDisassemblerBase? GetDisassembler()
         {
             int numMessages = BitConverter.ToInt32(_data, 0);
             

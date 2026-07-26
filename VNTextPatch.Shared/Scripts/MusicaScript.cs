@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Globalization;
 using VNTextPatch.Shared.Util;
+using System.Text.RegularExpressions;
+
 
 namespace VNTextPatch.Shared.Scripts
 {
@@ -16,7 +17,7 @@ namespace VNTextPatch.Shared.Scripts
             while (true)
             {
                 int lineStartPos = reader.Position;
-                string line = reader.ReadLine();
+                string? line = reader.ReadLine();
                 if (line == null)
                     break;
 

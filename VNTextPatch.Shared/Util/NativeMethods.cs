@@ -37,7 +37,7 @@ namespace VNTextPatch.Shared.Util
         public static extern bool GetCharABCWidthsFloatW(IntPtr hdc, int iFirst, int iLast, [MarshalAs(UnmanagedType.LPArray), Out] ABCFLOAT[] lpABC);
 
         [DllImport("gdi32", CallingConvention = CallingConvention.StdCall)]
-        public static extern int GetKerningPairsW(IntPtr hdc, int nPairs, [MarshalAs(UnmanagedType.LPArray), Out] KERNINGPAIR[] lpKernPair);
+        public static extern int GetKerningPairsW(IntPtr hdc, int nPairs, [MarshalAs(UnmanagedType.LPArray), Out] KERNINGPAIR[]? lpKernPair);
 
         [DllImport("gdi32", CallingConvention = CallingConvention.StdCall)]
         public static extern bool DeleteObject(IntPtr h);

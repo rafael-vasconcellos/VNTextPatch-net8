@@ -39,7 +39,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
         {
             foreach (SquirrelLiteralReference reference in _literalRefs)
             {
-                string value = (string)reference.Value;
+                string value = reference.StringValue;
                 foreach (Range range in GetTextRanges(value, reference.Type))
                 {
                     yield return new ScriptString(value.Substring(range.Offset, range.Length), range.Type);
@@ -76,7 +76,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
             using IEnumerator<ScriptString> stringEnumerator = strings.GetEnumerator();
             foreach (SquirrelLiteralReference reference in _literalRefs)
             {
-                string newText = MergeIntoText((string)reference.Value, reference.Type, stringEnumerator);
+                string newText = MergeIntoText(reference.StringValue, reference.Type, stringEnumerator);
                 if (reference.Pool != currentPool)
                 {
                     currentPool = reference.Pool;
@@ -136,7 +136,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
                     pool.Length,
                     writer =>
                     {
-                        foreach (object value in pool.Values)
+                        foreach (var value in pool.Values)
                         {
                             SquirrelObject.Write(writer, value, _encoding);
                         }

@@ -14,7 +14,7 @@ namespace VNTextPatch.Shared.Scripts
 
         private IList<IList<object>> _cells = [];
 
-        public string Extension
+        public string? Extension
         {
             get { return null; }
         }

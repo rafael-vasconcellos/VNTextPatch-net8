@@ -12,15 +12,14 @@ namespace VNTextPatch.Shared.Scripts.Kirikiri
         private static readonly byte[] Magic = { 0x54, 0x4A, 0x53, 0x32, 0x31, 0x30, 0x30, 0x00 };
         private static readonly byte[] DataTag = { 0x44, 0x41, 0x54, 0x41 };
 
-        private byte[] _bytes;
-        private short[] _shorts;
-        private int[] _ints;
-        private long[] _longs;
-        private double[] _doubles;
-        private string[] _strings;
-        private byte[][] _blobs;
-
-        private byte[] _fileRemainder;
+        private byte[] _bytes = [];
+        private short[] _shorts = [];
+        private int[] _ints = [];
+        private long[] _longs = [];
+        private double[] _doubles = [];
+        private byte[][] _blobs = [];
+        private byte[] _fileRemainder = [];
+        private string[] _strings = [];
 
         public string Extension => ".tjs";
 

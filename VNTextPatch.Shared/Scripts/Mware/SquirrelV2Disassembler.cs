@@ -72,8 +72,8 @@ namespace VNTextPatch.Shared.Scripts.Mware
         private void ReadFunction()
         {
             ReadTag("PART");
-            string sourceName = (string)ReadObject();
-            string funcName = (string)ReadObject();
+            string sourceName = ReadStringObject();
+            string funcName = ReadStringObject();
 
             _writer?.WriteLine();
             _writer?.WriteLine($"function {funcName}()");
@@ -120,6 +120,8 @@ namespace VNTextPatch.Shared.Scripts.Mware
                                            };
             for (int i = 0; i < counts.NumLiterals; i++)
             {
+                // A literal may legitimately be a compiled "null" constant, so unlike the
+                // name fields elsewhere, a null value here isn't malformed data.
                 literals.Values.Add(ReadObject());
             }
             literals.Length = (int)_stream.Position - literals.Offset;
@@ -134,7 +136,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
             ReadTag("PART");
             for (int i = 0; i < counts.NumParameters; i++)
             {
-                object name = ReadObject();
+                object? name = ReadObject();
             }
         }
 
@@ -144,8 +146,8 @@ namespace VNTextPatch.Shared.Scripts.Mware
             for (int i = 0; i < counts.NumOuterValues; i++)
             {
                 int type = _reader.ReadInt32();
-                object value = ReadObject();
-                string name = (string)ReadObject();
+                object? value = ReadObject();
+                string name = ReadStringObject();
             }
         }
 
@@ -154,7 +156,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
             ReadTag("PART");
             for (int i = 0; i < counts.NumLocals; i++)
             {
-                string name = (string)ReadObject();
+                string name = ReadStringObject();
                 int pos = _reader.ReadInt32();
                 int startOp = _reader.ReadInt32();
                 int endOp = _reader.ReadInt32();
@@ -184,7 +186,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
                 switch (instr.Opcode)
                 {
                     case Opcode.GETK:
-                        string fieldName = (string)literals.Values[instr.Arg1];
+                        string fieldName = GetLiteralString(literals, instr.Arg1);
                         switch (fieldName)
                         {
                             case "TransText":
@@ -198,7 +200,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
                         break;
 
                     case Opcode.PREPCALLK:
-                        string funcName = (string)literals.Values[instr.Arg1];
+                        string funcName = GetLiteralString(literals, instr.Arg1);
                         switch (funcName)
                         {
                             case "Print":
@@ -296,9 +298,19 @@ namespace VNTextPatch.Shared.Scripts.Mware
             return true;
         }
 
-        private object ReadObject()
+        private object? ReadObject()
         {
             return SquirrelObject.Read(_reader, _encoding);
+        }
+
+        private string ReadStringObject()
+        {
+            return ReadObject() as string ?? throw new InvalidDataException();
+        }
+
+        private static string GetLiteralString(SquirrelLiteralPool literals, int index)
+        {
+            return literals.Values[index] as string ?? throw new InvalidDataException();
         }
 
         private struct FunctionCounts

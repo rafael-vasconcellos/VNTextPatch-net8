@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Linq;
-using VNTextPatch.Shared.Util;
 using System.Reflection;
+using VNTextPatch.Shared.Util;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
@@ -97,7 +97,7 @@ namespace VNTextPatch.Shared.Scripts
 
         private static BaseClientService.Initializer? GetServiceAccountInitializer()
         {
-            var directoryName = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+            var directoryName = AppContext.BaseDirectory;
             string keyFilePath = Path.Combine(directoryName ?? "", "google-service-account.json");
             if (!File.Exists(keyFilePath))
                 return null;

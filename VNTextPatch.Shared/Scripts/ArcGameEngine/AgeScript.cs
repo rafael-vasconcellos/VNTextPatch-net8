@@ -10,16 +10,16 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
 {
     public class AgeScript : IScript
     {
-        private byte[] _data;
-        private List<int> _addrOffsets;
-        private AgeDisassembler _disassembler;
-        private List<AgeInstruction> _instructions;
+        private byte[] _data = [];
+        private List<int> _addrOffsets = [];
+        private AgeDisassembler _disassembler = null!;
+        private List<AgeInstruction> _instructions = null!;
         private Range _stringPoolRange;
 
-        private string _chInitFilePath;
-        private SortedList<int, string> _names;
+        private string _chInitFilePath = null!;
+        private SortedList<int, string>? _names;
 
-        private NameOutputInfo _nameOutputInfo;
+        private NameOutputInfo? _nameOutputInfo;
 
         public string Extension => ".bin";
 
@@ -42,8 +42,10 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
                 };
             _instructions = disassembler.Disassemble();
             _stringPoolRange = disassembler.StringPoolRange;
+            var dirname = Path.GetDirectoryName(filePath) ??
+                throw new Exception($"Failed to get dirname from {filePath}");
 
-            string chInitFilePath = Path.Combine(Path.GetDirectoryName(filePath), "CHINIT.BIN");
+            string chInitFilePath = Path.Combine(dirname, "CHINIT.BIN");
             if (chInitFilePath != _chInitFilePath)
             {
                 _chInitFilePath = chInitFilePath;
@@ -202,7 +204,7 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
         private IEnumerable<ScriptString> ParseIndirectNameInstructionGroup(AgeInstructionGroup group)
         {
             int index = GetIndirectNameIndex(group);
-            string name = _names.GetOrDefault(index) ?? "？？？";
+            string name = _names?.GetOrDefault(index) ?? "？？？";
             yield return new ScriptString(name, ScriptStringType.CharacterName);
         }
 
@@ -216,6 +218,8 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
                                  AgeOpcode.Sub => instrs[1].Operands[1].Value - instrs[1].Operands[2].Value,
                                  _ => throw new NotSupportedException()
                              };
+            if (_nameOutputInfo == null)
+                throw new Exception("_nameOutputInfo is null");
             return _nameOutputInfo.NameArrayBase + majorIndex * _nameOutputInfo.MajorIndexFactor + minorIndex;
         }
 
@@ -317,7 +321,7 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
 
             AgeInstructionGroup instrGroup = new AgeInstructionGroup(AgeInstructionGroupType.Message, new List<AgeInstruction>());
             string message = MonospaceWordWrapper.Default.Wrap(stringEnumerator.Current.Text);
-            foreach ((string text, Match match) in StringUtil.GetMatchingAndSurroundingTexts(message, new Regex(@"\r\n|\[([^\[\]/]+)/([^\[\]/]+)\]")))
+            foreach ((string? text, Match? match) in StringUtil.GetMatchingAndSurroundingTexts(message, new Regex(@"\r\n|\[([^\[\]/]+)/([^\[\]/]+)\]")))
             {
                 if (text != null)
                 {
@@ -328,13 +332,13 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
                     instr.Operands.Add(new AgeOperand(AgeOperandType.StringLiteral, relativeAddr));
                     instrGroup.Instructions.Add(instr);
                 }
-                else if (match.Value == "\r\n")
+                else if (match?.Value == "\r\n")
                 {
                     AgeInstruction instr = new AgeInstruction(AgeOpcode.PrintNewline);
                     instr.Operands.Add(new AgeOperand(AgeOperandType.IntLiteral, 0));
                     instrGroup.Instructions.Add(instr);
                 }
-                else
+                else if (match != null)
                 {
                     int relativeTextAddr = stringPool.Add(match.Groups[1].Value);
                     int relativeRubyAddr = stringPool.Add(match.Groups[2].Value);
@@ -422,7 +426,7 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
         /// First finds the innermost function (which sits at the very end of the script file),
         /// then follows any wrapper functions upwards until the top-level function is reached.
         /// </summary>
-        private NameOutputInfo GetNameOutputInfo()
+        private NameOutputInfo? GetNameOutputInfo()
         {
             NameOutputInfo info = GetInnerNameOutputInfo();
             if (!info.Valid)

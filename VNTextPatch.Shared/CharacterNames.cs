@@ -57,9 +57,7 @@ namespace VNTextPatch.Shared
         {
             get
             {
-                var directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
-                    ?? throw new InvalidOperationException("It was not possible to determine the application directory.");
-
+                var directory = AppContext.BaseDirectory;
                 return Path.Combine(directory, "names.xml");
             }
         }

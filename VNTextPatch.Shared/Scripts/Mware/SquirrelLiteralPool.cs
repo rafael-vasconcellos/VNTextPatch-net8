@@ -22,9 +22,9 @@ namespace VNTextPatch.Shared.Scripts.Mware
             set;
         }
 
-        public List<object> Values
+        public List<object?> Values
         {
             get;
-        } = new List<object>();
+        } = [];
     }
 }

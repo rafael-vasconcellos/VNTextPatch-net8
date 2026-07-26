@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
 
 namespace VNTextPatch.Shared.Scripts.Mware
 {
@@ -35,7 +36,10 @@ namespace VNTextPatch.Shared.Scripts.Mware
             set;
         }
 
-        public object Value => Pool.Values[Index];
+        public object? Value => Pool.Values[Index];
+
+        public string StringValue => Value as string
+            ?? throw new InvalidDataException($"Literal reference at offset {Offset} (pool index {Index}) does not resolve to a string.");
 
         public ScriptStringType Type
         {

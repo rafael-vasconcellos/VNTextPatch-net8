@@ -207,8 +207,6 @@ namespace VNTextPatch.Shared.Scripts.Artemis
                     table.Add(new LuaTable { new LuaString("rt2") });
                 else if (match?.Value != null)
                     table.Add(DeserializeCommand(match.Value));
-                else if (match == null)
-                    throw new InvalidDataException($"Failed to parse command");
             }
         }
 

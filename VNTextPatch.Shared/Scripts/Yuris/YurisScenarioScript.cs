@@ -18,15 +18,15 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             public const byte PushInt16 = 0x57;
         }
 
-        private string _lastFolderPath;
-        private YurisCommandList _commandList;
+        private string? _lastFolderPath;
+        private YurisCommandList? _commandList;
         private byte _wordCommandId;
         private byte _returnCodeCommandId;
         private byte _evalCommandId;
         private byte _gosubCommandId;
         private byte _cgCommandId;
 
-        private byte[] _data;
+        private byte[] _data = [];
         private uint _key;
 
         private int _instructionsOffset;
@@ -141,7 +141,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 ToggleScriptEncryption(newScript.Array, _key);
                 using (Stream outputFileStream = File.Open(location.ToFilePath(), FileMode.Create, FileAccess.Write))
                 {
-                    outputFileStream.Write(newScript.Array, 0, newScript.Count);
+                    outputFileStream.Write(new ReadOnlySpan<byte>(newScript.Array, 0, newScript.Count));
                 }
             }
         }
@@ -235,7 +235,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             }
             else if (command.Id == _gosubCommandId)
             {
-                string subName = GetAttributeValue(attrs[0]);
+                string? subName = GetAttributeValue(attrs[0]);
                 if (subName == null ||
                     !subName.Equals("ES.CHAR.NAME", StringComparison.InvariantCultureIgnoreCase) &&
                     !subName.Equals("ES.SEL.SET", StringComparison.InvariantCultureIgnoreCase))
@@ -255,7 +255,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             {
                 foreach (YurisAttribute attr in attrs.Where(a => a.Type == YurisAttributeType.Expression))
                 {
-                    string value = GetAttributeValue(attr);
+                    string? value = GetAttributeValue(attr);
                     if (value != null && StringUtil.ContainsJapaneseText(value))
                         yield return attr;
                 }
@@ -286,7 +286,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             }
         }
 
-        private string GetAttributeValue(in YurisAttribute attr)
+        private string? GetAttributeValue(in YurisAttribute attr)
         {
             switch (attr.Type)
             {
@@ -307,7 +307,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             }
         }
 
-        private string EvaluatePushStringExpression(in YurisAttribute attr)
+        private string? EvaluatePushStringExpression(in YurisAttribute attr)
         {
             // We expect expression bytecode of the form:
             // 4D           pushstring opcode
@@ -330,7 +330,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             return str;
         }
 
-        private string EvaluateChrExpression(in YurisAttribute attr)
+        private string? EvaluateChrExpression(in YurisAttribute attr)
         {
             // Expecting the following bytecode:
             // 56 03 00 24 XX XX        preparevarindexation $_CHR
@@ -534,9 +534,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             _lastFolderPath = folderPath;
         }
 
-        private static void ToggleScriptEncryption(byte[] script, uint key)
+        private static void ToggleScriptEncryption(byte[]? script, uint key)
         {
-            if (key == 0)
+            if (key == 0 || script == null)
                 return;
 
             int dataOffset = 0x20;

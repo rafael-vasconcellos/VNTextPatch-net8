@@ -30,7 +30,7 @@ namespace VNTextPatch.Shared.Scripts.Mware
             }
         }
 
-        public static void Write(BinaryWriter writer, object value, Encoding encoding)
+        public static void Write(BinaryWriter writer, object? value, Encoding encoding)
         {
             switch (value)
             {

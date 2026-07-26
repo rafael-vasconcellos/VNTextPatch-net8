@@ -10,7 +10,7 @@ namespace VNTextPatch.Shared.Scripts
     {
         private string _script = null!;
 
-        public abstract string Extension { get; }
+        public abstract string? Extension { get; }
 
         public virtual void Load(ScriptLocation location)
         {

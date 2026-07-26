@@ -20,8 +20,7 @@ namespace VNTextPatch.Shared.Scripts
 
             if (!File.Exists(filePath))
             {
-                var folderPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??
-                    throw new Exception($"failed to get folder path out of {filePath}");
+                var folderPath = AppContext.BaseDirectory;
                 string templateFilePath = Path.Combine(folderPath, "template.xlsx");
                 File.Copy(templateFilePath, filePath);
                 _isEmpty = true;

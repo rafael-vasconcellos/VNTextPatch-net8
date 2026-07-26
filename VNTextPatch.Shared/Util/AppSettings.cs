@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Configuration;
 using System.IO;
+using Microsoft.Extensions.Configuration;
 
 
 namespace VNTextPatch.Shared.Util
@@ -21,7 +21,7 @@ namespace VNTextPatch.Shared.Util
             catch (Exception e)
             {
                 Console.Write(e);
-                throw e;
+                throw; // Preserva a stack trace
             }
 
         }

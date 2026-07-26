@@ -63,7 +63,7 @@ namespace VNTextPatch.Shared.Scripts
                 };
         }
 
-        public FolderScriptCollection(string folderPath, string extension, string? format = null)
+        public FolderScriptCollection(string folderPath, string? extension, string? format = null)
         {
             if (!Directory.Exists(folderPath))
                 throw new DirectoryNotFoundException($"{folderPath} does not exist");

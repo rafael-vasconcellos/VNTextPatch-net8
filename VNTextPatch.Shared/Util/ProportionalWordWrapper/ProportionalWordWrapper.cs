@@ -39,7 +39,7 @@ namespace VNTextPatch.Shared.Util
             catch (Exception e)
             {
                 Console.Write(e);
-                throw e;
+                throw; // Preserva a stack trace
             }
 
         }

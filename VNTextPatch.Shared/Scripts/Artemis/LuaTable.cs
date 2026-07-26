@@ -13,7 +13,7 @@ namespace VNTextPatch.Shared.Scripts.Artemis
             {
                 if (value != null)
                 {
-                    var node = this.OfType<LuaAttribute>().FirstOrDefault(n => n.Name == key);
+                    LuaAttribute? node = this.OfType<LuaAttribute>().FirstOrDefault(n => n.Name == key);
                     if (node != null)
                         node.Value = value;
                     else

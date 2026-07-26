@@ -9,7 +9,7 @@ namespace VNTextPatch.Shared.Scripts
     {
         private static readonly string[] MessageCommands = { "CS", "MS.HS" };
 
-        public override string Extension => null!;
+        public override string? Extension => null;
 
         protected override IEnumerable<Range> GetRanges(string script)
         {

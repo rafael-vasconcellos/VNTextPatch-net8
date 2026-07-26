@@ -84,7 +84,7 @@ namespace VNTextPatch
             }
             finally
             {
-                IDisposable textCollection = textLocation.Collection as IDisposable;
+                IDisposable? textCollection = textLocation.Collection as IDisposable;
                 textCollection?.Dispose();
 
                 if (extracter.TotalLines == 0)
@@ -106,7 +106,7 @@ namespace VNTextPatch
             string inputPath = Path.GetFullPath(args[1]);
             string textPath = Path.GetFullPath(args[2]);
             string outputPath = Path.GetFullPath(args[3]);
-            string sjisExtPath = args.Length > 4 ? Path.GetFullPath(args[4]) : null;
+            string? sjisExtPath = args.Length > 4 ? Path.GetFullPath(args[4]) : null;
 
             ScriptLocation inputLocation;
             if (!TryParseLocalPath(inputPath, options.Format, out inputLocation))
@@ -115,7 +115,10 @@ namespace VNTextPatch
             ScriptLocation textLocation = GetLocalTextScriptLocation(inputLocation, textPath);
 
             if (sjisExtPath == null)
-                sjisExtPath = Path.Combine(inputLocation.ScriptName != null ? Path.GetDirectoryName(outputPath) : outputPath, "sjis_ext.bin");
+            {
+                var dirPath = inputLocation.ScriptName != null ? Path.GetDirectoryName(outputPath) : outputPath;
+                sjisExtPath = Path.Combine(dirPath!, "sjis_ext.bin");
+            }
 
             if (File.Exists(sjisExtPath))
                 StringUtil.SjisTunnelEncoding.SetMappingTable(File.ReadAllBytes(sjisExtPath));
@@ -132,7 +135,7 @@ namespace VNTextPatch
                 else
                 {
                     FolderScriptCollection inputCollection = (FolderScriptCollection)inputLocation.Collection;
-                    FolderScriptCollection outputCollection = new FolderScriptCollection(outputPath, options.Format, inputCollection.Extension);
+                    FolderScriptCollection outputCollection = new FolderScriptCollection(outputPath, inputCollection.Extension, options.Format);
                     inserter = new Inserter(inputCollection, textLocation.Collection, outputCollection);
                     inserter.InsertAll();
                 }
@@ -148,7 +151,7 @@ namespace VNTextPatch
             }
             finally
             {
-                IDisposable textCollection = textLocation.Collection as IDisposable;
+                IDisposable? textCollection = textLocation.Collection as IDisposable;
                 textCollection?.Dispose();
             }
         }
@@ -164,7 +167,7 @@ namespace VNTextPatch
             string inputPath = Path.GetFullPath(args[1]);
             string spreadsheetId = args[2];
             string outputPath = Path.GetFullPath(args[3]);
-            string sjisExtPath = args.Length > 4 ? Path.GetFullPath(args[4]) : null;
+            string? sjisExtPath = args.Length > 4 ? Path.GetFullPath(args[4]) : null;
 
             ScriptLocation inputLocation;
             if (!TryParseLocalPath(inputPath, options.Format, out inputLocation))
@@ -173,7 +176,10 @@ namespace VNTextPatch
             var textCollection = GoogleDocsScriptFactory.Build(spreadsheetId);
 
             if (sjisExtPath == null)
-                sjisExtPath = Path.Combine(inputLocation.ScriptName != null ? Path.GetDirectoryName(outputPath) : outputPath, "sjis_ext.bin");
+            {
+                var dirPath = inputLocation.ScriptName != null ? Path.GetDirectoryName(outputPath) : outputPath;
+                sjisExtPath = Path.Combine(dirPath!, "sjis_ext.bin");
+            }
 
             if (File.Exists(sjisExtPath))
                 StringUtil.SjisTunnelEncoding.SetMappingTable(File.ReadAllBytes(sjisExtPath));
@@ -191,7 +197,7 @@ namespace VNTextPatch
             else
             {
                 FolderScriptCollection inputCollection = (FolderScriptCollection)inputLocation.Collection;
-                FolderScriptCollection outputCollection = new FolderScriptCollection(outputPath, options.Format, inputCollection.Extension);
+                FolderScriptCollection outputCollection = new FolderScriptCollection(outputPath, inputCollection.Extension, options.Format);
                 inserter = new Inserter(inputCollection, textCollection, outputCollection);
                 inserter.InsertAll();
             }
@@ -204,7 +210,7 @@ namespace VNTextPatch
                 PrintInsertionStatistics(inserter.Statistics);
         }
 
-        private static bool TryParseLocalPath(string path, string format, out ScriptLocation location)
+        private static bool TryParseLocalPath(string path, string? format, out ScriptLocation location)
         {
             location = new ScriptLocation();
 
@@ -216,7 +222,7 @@ namespace VNTextPatch
 
             if (Directory.Exists(path))
             {
-                string firstFilePath = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).FirstOrDefault();
+                string? firstFilePath = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).FirstOrDefault();
                 if (firstFilePath == null)
                 {
                     Console.WriteLine($"Folder {path} is empty");
@@ -252,8 +258,8 @@ namespace VNTextPatch
 
                 case ".xlsx":
                     var collection = ExcelScriptFactory.Build(textPath);
-                    string scriptName = inputLocation.ScriptName != null ? Path.GetFileNameWithoutExtension(inputLocation.ScriptName) : null;
-                    return new ScriptLocation(collection, scriptName);
+                    string? scriptName = inputLocation.ScriptName != null ? Path.GetFileNameWithoutExtension(inputLocation.ScriptName) : null;
+                    return new ScriptLocation(collection, scriptName!);
 
                 default:
                     throw new ArgumentException("Script path must be a .json or .xlsx file or an existing folder");
@@ -276,8 +282,8 @@ namespace VNTextPatch
 
         private static void PrintUsage()
         {
-            string assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
-            string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            string? assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
+            string? version = Assembly.GetExecutingAssembly().GetName().Version?.ToString();
             Console.WriteLine($"VNTextPatch v. {version}");
             Console.WriteLine($"Usage:");
             Console.WriteLine($"    {assemblyName} extractlocal infile|infolder scriptfile|scriptfolder");
@@ -334,7 +340,7 @@ namespace VNTextPatch
                 return options;
             }
 
-            public string Format
+            public string? Format
             {
                 get;
                 private set;

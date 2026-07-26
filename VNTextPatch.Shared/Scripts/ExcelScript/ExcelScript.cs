@@ -21,7 +21,7 @@ namespace VNTextPatch.Shared.Scripts
             _workbook = workbook;
         }
 
-        public string Extension
+        public string? Extension
         {
             get { return null; }
         }
