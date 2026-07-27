@@ -5,7 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RuntimeIdentifiers>browser-wasm;win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <!-- <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract> -->
+    <!-- <RuntimeIdentifiers>browser-wasm;win-x64;linux-x64;osx-x64</RuntimeIdentifiers> -->
   </PropertyGroup>
   
   <!-- Configurações específicas para WebAssembly -->

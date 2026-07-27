@@ -1,7 +1,4 @@
 using Microsoft.Extensions.Configuration;
-using System.Runtime.InteropServices;
-using VNTextPatch.Shared.Util;
-
 
 namespace VNTextPatch.Shared.Util
 {
@@ -17,24 +14,16 @@ namespace VNTextPatch.Shared.Util
         {
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    return new WindowsTextMeasurer(
-                        AppSettings.Configuration[fontName] ?? "Franklin Gothic Book",
-                        AppSettings.Configuration.GetValue<int>(fontSize, 0),
-                        AppSettings.Configuration.GetValue<bool>(fontBold, false),
-                        AppSettings.Configuration.GetValue<int>(lineWidth, lineWidth.Contains("Secondary")? 670 : 1000)
-                    );
-                }
-                else
-                {
-                    return new SkiaTextMeasurer(
-                        AppSettings.Configuration[fontName] ?? "Franklin Gothic Book",
-                        AppSettings.Configuration.GetValue<int>(fontSize, 0),
-                        AppSettings.Configuration.GetValue<bool>(fontBold, false),
-                        AppSettings.Configuration.GetValue<int>(lineWidth, lineWidth.Contains("Secondary")? 670 : 1000)
-                    );
-                }
+                var name = AppSettings.Configuration[fontName] ?? "Franklin Gothic Book";
+                var size = AppSettings.Configuration.GetValue<int>(fontSize, 0);
+                var bold = AppSettings.Configuration.GetValue<bool>(fontBold, false);
+                var width = AppSettings.Configuration.GetValue<int>(lineWidth, lineWidth.Contains("Secondary") ? 670 : 1000);
+
+#if WINDOWS
+                return new WindowsTextMeasurer(name, size, bold, width);
+#else
+                return new SkiaTextMeasurer(name, size, bold, width);
+#endif
             }
             catch (Exception e)
             {

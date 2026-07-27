@@ -1,6 +1,4 @@
 #!/bin/bash
-# filepath: /workspaces/VNTextPatch-wasm/publish-vntextpatch.sh
-
 # Use: ./publish-vntextpatch.sh [plataforma]
 # Example: ./publish-vntextpatch.sh linux-x64, or browser-wasm, wasm, wasm32
 # If none platform is passed, the default will be "win-x64"
