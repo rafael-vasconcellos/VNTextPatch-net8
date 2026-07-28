@@ -39,6 +39,7 @@ namespace VNTextPatch.Shared
             if (!_inputCollection.Exists(inputScriptName))
                 throw new FileNotFoundException($"{inputScriptName} does not exist in {_inputCollection.Name}");
 
+            int scriptLines = 0;
             _inputScript.Load(new ScriptLocation(_inputCollection, inputScriptName));
             List<ScriptString> strings = _inputScript.GetStrings().ToList();
             if (strings.Count == 0)
@@ -52,15 +53,17 @@ namespace VNTextPatch.Shared
             foreach (ScriptString str in strings.Where(s => s.Type == ScriptStringType.Message))
             {
                 TotalLines++;
+                scriptLines++;
                 TotalCharacters += str.Text.Count(c => "「」『』【】（）“”、。？！".IndexOf(c) < 0);
             }
+
+            Console.WriteLine($"{inputScriptName} -> {textScriptName}: {scriptLines} lines");
         }
 
         public void ExtractAll()
         {
             foreach (string inputScriptName in _inputCollection.Scripts)
             {
-                Console.WriteLine(inputScriptName);
 
                 try
                 {
