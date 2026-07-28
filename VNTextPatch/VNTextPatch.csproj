@@ -50,7 +50,13 @@
   <ItemGroup>
     <ProjectReference Include="..\VNTextPatch.Shared\VNTextPatch.Shared.csproj" />
   </ItemGroup>
-  
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <ProjectReference Update="..\VNTextPatch.Shared\VNTextPatch.Shared.csproj">
+      <AdditionalProperties>DefineConstants=WINDOWS</AdditionalProperties>
+    </ProjectReference>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
   </ItemGroup>
@@ -60,5 +66,11 @@
     <NativeFileReference Include="$(SkiaSharpStaticLibraryPath)\3.1.56\st\*.a" />
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.10" />
   </ItemGroup>
+
+
+  <Target Name="DebugPrint" BeforeTargets="CoreCompile">
+    <Message Text="Project: $(MSBuildProjectName)" Importance="High" />
+    <Message Text="RID: $(RuntimeIdentifier)" Importance="High" />
+  </Target>
 
 </Project>

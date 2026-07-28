@@ -15,14 +15,14 @@ namespace VNTextPatch.Shared.Util
             try
             {
                 var name = AppSettings.Configuration[fontName] ?? "Franklin Gothic Book";
-                var size = AppSettings.Configuration.GetValue<int>(fontSize, 0);
+                var size = AppSettings.Configuration.GetValue<int>(fontSize, 40);
                 var bold = AppSettings.Configuration.GetValue<bool>(fontBold, false);
                 var width = AppSettings.Configuration.GetValue<int>(lineWidth, lineWidth.Contains("Secondary") ? 670 : 1000);
 
 #if WINDOWS
                 return new WindowsTextMeasurer(name, size, bold, width);
 #else
-                return new SkiaTextMeasurer(name, size, bold, width);
+                return new SkiaTextMeasurer(name, 0, bold, width);
 #endif
             }
             catch (Exception e)

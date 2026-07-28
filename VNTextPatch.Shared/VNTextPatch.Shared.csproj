@@ -12,13 +12,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <!-- Configurações específicas para WebAssembly -->
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'browser-wasm'">
-    <DefineConstants>$(DefineConstants);BROWSER_WASM</DefineConstants>
-    <WasmBuildNative>true</WasmBuildNative>
-    <WasmNativeStrip>true</WasmNativeStrip>
-  </PropertyGroup>
-
   <!-- Pacotes compatíveis com WebAssembly -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.6" />
@@ -28,6 +21,8 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
     <!-- <NativeFileReference Include="$(SkiaSharpStaticLibraryPath)\3.1.56\st\*.a" /> -->
+  </ItemGroup>
+  <ItemGroup Condition="!$(DefineConstants.Contains('WINDOWS'))">
     <PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.0" />
     <PackageReference Include="SkiaSharp" Version="3.119.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.0" />
@@ -66,7 +61,6 @@
 
   <Target Name="DebugPrint" BeforeTargets="Build">
     <Message Text="Valor de SkiaSharpStaticLibraryPath: '$(SkiaSharpStaticLibraryPath)'" Importance="High" />
-    <Message Text="Valor de RuntimeIdentifier: '$(RuntimeIdentifier)'" Importance="High" />
   </Target>
 
 </Project>

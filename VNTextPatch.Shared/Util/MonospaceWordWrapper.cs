@@ -10,7 +10,7 @@ namespace VNTextPatch.Shared.Util
         public static readonly MonospaceWordWrapper Default = new MonospaceWordWrapper();
 
         private MonospaceWordWrapper()
-            : this(Convert.ToInt32(AppSettings.Configuration["MonospaceCharactersPerLine"]))
+            : this(AppSettings.Configuration.GetValue<int>("MonospaceCharactersPerLine", 60))
         {
         }
 

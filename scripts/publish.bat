@@ -35,6 +35,7 @@ dotnet publish VNTextPatch\VNTextPatch.csproj ^
   -r "%PLATFORM%" ^
   -o "%OUTPUT_DIR%" ^
   -p "PublishSingleFile=true" ^
+  --tl:"off" ^
   %SELF_CONTAINED%
 
 :: Compacta a pasta de saida em um .zip (opcional - descomente para usar)
