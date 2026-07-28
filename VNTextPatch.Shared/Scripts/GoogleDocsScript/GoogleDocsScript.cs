@@ -134,7 +134,7 @@ namespace VNTextPatch.Shared.Scripts
         private static string GetScriptRange(Sheet sheet)
         {
             GridProperties properties = sheet.Properties.GridProperties;
-            int maxColumnIdx = Enum.GetValues(typeof(ExcelColumn)).Cast<ExcelColumn>().Max(c => (int)c);
+            int maxColumnIdx = Enum.GetValues<ExcelColumn>().Max(c => (int)c);
             char maxColumnName = (char)('A' + maxColumnIdx - 1);
             return $"{sheet.Properties.Title}!A1:{maxColumnName}{properties.RowCount}";
         }

@@ -1,7 +1,8 @@
-﻿using System;
+﻿// MonospaceWordWrapper.cs
 using VNTextPatch.Shared.Util;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
-//using System.Configuration;
+
 
 namespace VNTextPatch.Shared.Util
 {
@@ -9,6 +10,7 @@ namespace VNTextPatch.Shared.Util
     {
         public static readonly MonospaceWordWrapper Default = new MonospaceWordWrapper();
 
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "T is always an int; primitive type conversion, without reflection on members.")]
         private MonospaceWordWrapper()
             : this(AppSettings.Configuration.GetValue<int>("MonospaceCharactersPerLine", 60))
         {

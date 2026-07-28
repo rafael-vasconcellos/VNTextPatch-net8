@@ -2,29 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Xml.Serialization;
 using VNTextPatch.Shared.Util;
+using System.Xml.Linq;
+
 
 namespace VNTextPatch.Shared
 {
     public class CharacterNames
     {
         private static readonly Lazy<CharacterNames> _instance = new Lazy<CharacterNames>(() => new CharacterNames());
-
-        private readonly Dictionary<string, string> _translations;
-
-        private CharacterNames()
-        {
-            Document doc;
-            using (Stream stream = File.OpenRead(FilePath))
-            {
-                XmlSerializer serializer = new XmlSerializer(typeof(Document));
-                doc = serializer.Deserialize(stream) as Document
-                    ?? throw new InvalidOperationException("Failed to deserialize the XML.");
-            }
-            _translations = (doc.Characters ?? new Character[0]).ToDictionary(c => c.JapaneseName!, c => c.EnglishName!);
-        }
 
         private static CharacterNames Instance
         {
@@ -46,48 +32,48 @@ namespace VNTextPatch.Shared
             Instance.Write();
         }
 
-        private void Write()
-        {
-            using Stream stream = File.Open(FilePath, FileMode.Create, FileAccess.Write);
-            XmlSerializer serializer = new XmlSerializer(typeof(Document));
-            serializer.Serialize(stream, new Document { Characters = _translations.Select(n => new Character { JapaneseName = n.Key, EnglishName = n.Value }).ToArray() });
-        }
-
         private static string FilePath
         {
             get
             {
-                var directory = AppContext.BaseDirectory;
+                //var directory = Directory.GetCurrentDirectory();
+                var directory = Environment.CurrentDirectory;
                 return Path.Combine(directory, "names.xml");
             }
         }
 
-        [XmlRoot("names")]
-        public class Document
+        private readonly Dictionary<string, string> _translations;
+
+        private CharacterNames()
         {
-            [XmlElement("n")]
-            public Character[]? Characters
+            try
             {
-                get;
-                set;
+                XDocument doc = XDocument.Load(FilePath);
+                _translations = doc.Root?.Elements("n")
+                    .ToDictionary(
+                        e => (string)e.Element("o")!,
+                        e => (string)e.Element("tl")!
+                    ) ?? new Dictionary<string, string>();
+
+            } catch
+            {
+                _translations = new Dictionary<string, string>();
             }
         }
 
-        public class Character
+        private void Write()
         {
-            [XmlElement("o")]
-            public string? JapaneseName
-            {
-                get;
-                set;
-            }
-
-            [XmlElement("tl")]
-            public string? EnglishName
-            {
-                get;
-                set;
-            }
+            if (_translations.Count == 0)
+                return;
+            var doc = new XDocument(
+                new XElement("names",
+                    _translations.Select(n =>
+                        new XElement("n",
+                            new XElement("o", n.Key),
+                            new XElement("tl", n.Value)))));
+            doc.Save(FilePath);
         }
+
     }
+
 }

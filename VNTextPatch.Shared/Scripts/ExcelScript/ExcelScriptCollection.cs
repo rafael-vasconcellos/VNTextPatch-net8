@@ -22,8 +22,11 @@ namespace VNTextPatch.Shared.Scripts
             {
                 var folderPath = AppContext.BaseDirectory;
                 string templateFilePath = Path.Combine(folderPath, "template.xlsx");
-                File.Copy(templateFilePath, filePath);
                 _isEmpty = true;
+                if (File.Exists(templateFilePath))
+                    File.Copy(templateFilePath, filePath);
+                else
+                    CreateFile(filePath);
             }
 
             _workbook = new XSSFWorkbook(filePath);
@@ -98,5 +101,16 @@ namespace VNTextPatch.Shared.Scripts
         {
             File.Delete(Name);
         }
+
+        private static void CreateFile(string filePath)
+        {
+            var workbook = new XSSFWorkbook();
+            workbook.CreateSheet("Script");
+
+            using var stream = File.Create(filePath);
+            workbook.Write(stream);
+            workbook.Dispose();
+        }
+
     }
 }

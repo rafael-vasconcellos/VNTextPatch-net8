@@ -1,4 +1,6 @@
+// AppSettings.cs
 using System.IO;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 
 
@@ -8,6 +10,8 @@ namespace VNTextPatch.Shared.Util
     {
         public static readonly IConfiguration Configuration = Build();
 
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "settings.xml doesn't use EncryptedXml/XSLT.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "settings.xml doesn't use EncryptedXml/XSLT.")]
         public static IConfiguration Build()
         {
             try
