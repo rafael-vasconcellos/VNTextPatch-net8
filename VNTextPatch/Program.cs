@@ -67,10 +67,10 @@ namespace VNTextPatch
             if (!TryParseLocalPath(inputPath, options.Format, out inputLocation))
                 return;
 
+            if (!Directory.Exists(textPath) && IsValidDirectoryPath(textPath)) 
+                Directory.CreateDirectory(textPath);
 
             ScriptLocation textLocation = GetLocalTextScriptLocation(inputLocation, textPath);
-
-
             Extracter extracter = new Extracter(inputLocation.Collection, textLocation.Collection);
             try
             {
@@ -112,8 +112,10 @@ namespace VNTextPatch
             if (!TryParseLocalPath(inputPath, options.Format, out inputLocation))
                 return;
 
-            ScriptLocation textLocation = GetLocalTextScriptLocation(inputLocation, textPath);
+            if (!Directory.Exists(outputPath) && IsValidDirectoryPath(outputPath)) 
+                Directory.CreateDirectory(outputPath);
 
+            ScriptLocation textLocation = GetLocalTextScriptLocation(inputLocation, textPath);
             if (sjisExtPath == null)
             {
                 var dirPath = inputLocation.ScriptName != null ? Path.GetDirectoryName(outputPath) : outputPath;
@@ -210,6 +212,35 @@ namespace VNTextPatch
                 PrintInsertionStatistics(inserter.Statistics);
         }
 
+        private static ScriptLocation GetLocalTextScriptLocation(ScriptLocation inputLocation, string textPath)
+        {
+            if (Directory.Exists(textPath))
+            {
+                if (inputLocation.ScriptName != null)
+                    throw new ArgumentException("Input path and script path must be of the same type (file or folder).");
+
+                FolderScriptCollection collection = new FolderScriptCollection(textPath, ".json");
+                return new ScriptLocation(collection: collection, scriptName: null);
+            }
+
+            switch (Path.GetExtension(textPath)?.ToLower())
+            {
+                case ".json":
+                    if (inputLocation.ScriptName == null)
+                        throw new ArgumentException("Input path and script path must be of the same type (file or folder).");
+
+                    return ScriptLocation.FromFilePath(textPath);
+
+                case ".xlsx":
+                    var collection = ExcelScriptFactory.Build(textPath);
+                    string? scriptName = inputLocation.ScriptName != null ? Path.GetFileNameWithoutExtension(inputLocation.ScriptName) : null;
+                    return new ScriptLocation(collection, scriptName!);
+
+                default:
+                    throw new ArgumentException("Script path must be a .json or .xlsx file or an existing folder");
+            }
+        }
+
         private static bool TryParseLocalPath(string path, string? format, out ScriptLocation location)
         {
             location = new ScriptLocation();
@@ -229,7 +260,7 @@ namespace VNTextPatch
                     return false;
                 }
                 IScriptCollection collection = new FolderScriptCollection(path, Path.GetExtension(firstFilePath), format);
-                location = new ScriptLocation(collection, null);
+                location = new ScriptLocation(collection: collection, scriptName: null);
                 return true;
             }
 
@@ -237,32 +268,25 @@ namespace VNTextPatch
             return false;
         }
 
-        private static ScriptLocation GetLocalTextScriptLocation(ScriptLocation inputLocation, string textPath)
+        private static bool IsValidDirectoryPath(string path)
         {
-            if (Directory.Exists(textPath))
-            {
-                if (inputLocation.ScriptName != null)
-                    throw new ArgumentException("Input path and script path must be of the same type (file or folder).");
+            //Console.WriteLine(path);
+            string? pathExtension = Path.GetExtension(path);
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
 
-                FolderScriptCollection collection = new FolderScriptCollection(textPath, ".json");
-                return new ScriptLocation(collection, null);
+            if (pathExtension != null && pathExtension.Length > 0)
+                return false;
+
+            try
+            {
+                Path.GetFullPath(path);
+                return true;
             }
-
-            switch (Path.GetExtension(textPath)?.ToLower())
+            catch
             {
-                case ".json":
-                    if (inputLocation.ScriptName == null)
-                        throw new ArgumentException("Input path and script path must be of the same type (file or folder).");
-
-                    return ScriptLocation.FromFilePath(textPath);
-
-                case ".xlsx":
-                    var collection = ExcelScriptFactory.Build(textPath);
-                    string? scriptName = inputLocation.ScriptName != null ? Path.GetFileNameWithoutExtension(inputLocation.ScriptName) : null;
-                    return new ScriptLocation(collection, scriptName!);
-
-                default:
-                    throw new ArgumentException("Script path must be a .json or .xlsx file or an existing folder");
+                //Console.WriteLine(e);
+                return false;
             }
         }
 
