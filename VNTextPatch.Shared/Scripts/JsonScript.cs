@@ -1,20 +1,27 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Encodings.Web;
+
 
 namespace VNTextPatch.Shared.Scripts
 {
-    public class JsonScript : IScript
+    public partial class JsonScript : IScript
     {
+        private static readonly JsonContext Context = new(new JsonSerializerOptions(JsonContext.Default.Options)
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
+
         public string Extension => ".json";
 
         private Entry[] _entries = [];
 
         public void Load(ScriptLocation location)
         {
-            using StreamReader reader = new StreamReader(location.ToFilePath());
-            JsonSerializer serializer = new JsonSerializer();
-            _entries = serializer.Deserialize<Entry[]>(new JsonTextReader(reader)) ?? _entries;
+            using FileStream stream = File.OpenRead(location.ToFilePath());
+            _entries = JsonSerializer.Deserialize(stream, Context.EntryArray) ?? _entries;
         }
 
         public IEnumerable<ScriptString> GetStrings()
@@ -75,33 +82,40 @@ namespace VNTextPatch.Shared.Scripts
             }
 
             using Stream stream = File.Open(location.ToFilePath(), FileMode.Create);
-            using StreamWriter writer = new StreamWriter(stream);
-            JsonSerializer serializer = new JsonSerializer();
-            serializer.Serialize(new JsonTextWriter(writer) { Formatting = Formatting.Indented }, entries);
+            JsonSerializer.Serialize(stream, entries, Context.ListEntry);
         }
 
         private class Entry
         {
-            [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
+            [JsonPropertyName("name")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string? Name
             {
                 get;
                 set;
             }
 
-            [JsonProperty("names", NullValueHandling = NullValueHandling.Ignore)]
+            [JsonPropertyName("names")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public List<string>? Names
             {
                 get;
                 set;
             }
 
-            [JsonProperty("message")]
+            [JsonPropertyName("message")]
             public string? Message
             {
                 get;
                 set;
             }
+        }
+
+        [JsonSourceGenerationOptions(WriteIndented = true)]
+        [JsonSerializable(typeof(Entry[]))]
+        [JsonSerializable(typeof(List<Entry>))]
+        private partial class JsonContext : JsonSerializerContext
+        {
         }
     }
 }
