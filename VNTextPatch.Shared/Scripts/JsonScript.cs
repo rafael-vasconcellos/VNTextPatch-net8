@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Encodings.Web;
+using VNTextPatch.Shared.Util;
 
 
 namespace VNTextPatch.Shared.Scripts
@@ -11,7 +12,7 @@ namespace VNTextPatch.Shared.Scripts
     {
         private static readonly JsonContext Context = new(new JsonSerializerOptions(JsonContext.Default.Options)
         {
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            Encoder = MinimalJsonEncoder.Instance
         });
 
         public string Extension => ".json";
