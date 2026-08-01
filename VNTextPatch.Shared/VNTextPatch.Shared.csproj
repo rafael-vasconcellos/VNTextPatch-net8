@@ -52,6 +52,7 @@
     <Content Include="template.xlsx">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <EmbeddedResource Include="template.xlsx" />
   </ItemGroup>
 
   <ItemGroup>

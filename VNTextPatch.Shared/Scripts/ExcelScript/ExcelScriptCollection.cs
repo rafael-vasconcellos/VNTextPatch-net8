@@ -104,12 +104,19 @@ namespace VNTextPatch.Shared.Scripts
 
         private static void CreateFile(string filePath)
         {
-            var workbook = new XSSFWorkbook();
-            workbook.CreateSheet("Script");
-
             using var stream = File.Create(filePath);
+            using var templateStream = Assembly
+                .GetExecutingAssembly()
+                .GetManifestResourceStream("VNTextPatch.Shared.template.xlsx");
+
+            using var workbook = templateStream is not null
+                ? new XSSFWorkbook(templateStream)
+                : new XSSFWorkbook();
+
+            if (templateStream is null)
+                workbook.CreateSheet("Script");
+
             workbook.Write(stream);
-            workbook.Dispose();
         }
 
     }
