@@ -15,7 +15,7 @@ namespace VNTextPatch
         public static void Main(string[] args)
         {
             Options options = Options.Parse(args, out args);
-            if (args.Length == 0)
+            if (args.Length == 0 || args.Contains("-h") || args.Contains("--help"))
             {
                 PrintUsage();
                 return;
