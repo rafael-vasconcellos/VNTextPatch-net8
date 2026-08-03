@@ -12,6 +12,10 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 + upgraded project to latest LTS .NET version
 + **Removed** suport for KiriKiri SCN Scripts because **FreeMote** uses net4.8
 + implemented multiplatform `ProportionalWordWrapper` using SkiaSharp
++ creates the output folder if it doesn't currently exists
++ enhance extraction statistics logs
++ removed the dependency on `names.xml` and `template.xlsx`
++ add `-h` and `--help` options
 
 #### replaced libs
 System.Configuration -> Microsoft.Extensions.Configuration  
