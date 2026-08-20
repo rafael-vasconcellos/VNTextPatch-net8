@@ -9,6 +9,7 @@
     <DebugSymbols>false</DebugSymbols>
     <!-- <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract> -->
     <!-- <RuntimeIdentifiers>browser-wasm;win-x64;linux-x64;osx-x64</RuntimeIdentifiers> -->
+    <!-- <IlcOptimizationPreference>Size</IlcOptimizationPreference> -->
   </PropertyGroup>
   
   <!-- Configurações específicas para WebAssembly -->
@@ -57,14 +58,13 @@
     </ProjectReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
-  </ItemGroup>
-  
   <!-- Pacotes necessários para WebAssembly -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'browser-wasm'">
     <NativeFileReference Include="$(SkiaSharpStaticLibraryPath)\3.1.56\st\*.a" />
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.10" />
+    <ProjectReference Update="..\VNTextPatch.Shared\VNTextPatch.Shared.csproj">
+      <AdditionalProperties>DefineConstants=WASM</AdditionalProperties>
+    </ProjectReference>
   </ItemGroup>
 
 

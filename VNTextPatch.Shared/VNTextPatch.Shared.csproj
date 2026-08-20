@@ -10,33 +10,37 @@
     <DebugSymbols>false</DebugSymbols>
 
     <ImplicitUsings>enable</ImplicitUsings>
+    <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
   </PropertyGroup>
 
   <!-- Pacotes compatíveis com WebAssembly -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.6" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.6" />
-    <PackageReference Include="System.Runtime" Version="4.3.1" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
-    <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.11" />
     <!-- <NativeFileReference Include="$(SkiaSharpStaticLibraryPath)\3.1.56\st\*.a" /> -->
   </ItemGroup>
   <ItemGroup Condition="!$(DefineConstants.Contains('WINDOWS'))">
-    <PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.0" />
-    <PackageReference Include="SkiaSharp" Version="3.119.0" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.0" />
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.2" />
+  </ItemGroup>
+  <ItemGroup Condition="$(DefineConstants.Contains('WASM'))">
+    <PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.2" />
   </ItemGroup>
 
   <!-- Pacotes aparentemente incompatíveis com WebAssembly -->
   <ItemGroup>
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Security.Cryptography.X509Certificates" Version="4.3.2" /> <!-- SSL/TLS -->
     <!-- Aparentemente também incompatíveis com native AOT -->
-    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.70.0.3819" />
-    <PackageReference Include="NPOI" Version="2.7.4" /> <!-- excel -->
-    <PackageReference Include="Microsoft.Extensions.Configuration.Xml" Version="9.0.6" />
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.75.0.4178" />
+    <PackageReference Include="NPOI" Version="2.8.0" /> <!-- excel -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Xml" Version="10.0.11" />
   </ItemGroup>
+
+  <!-- Pacotes já incluídos no dotnet moderno -->
+  <!-- <ItemGroup>
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.6" />
+    <PackageReference Include="System.Runtime" Version="4.3.1" />
+    <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
+  </ItemGroup> -->
 
 
   <ItemGroup>

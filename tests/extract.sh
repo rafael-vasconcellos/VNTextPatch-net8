@@ -1,1 +1,1 @@
-dotnet Build/VNTextPatch/VNTextPatch.dll extractlocal tests/input tests/output
+Build/VNTextPatch-linux-x64/VNTextPatch extractlocal tests/input tests/output.xlsx
