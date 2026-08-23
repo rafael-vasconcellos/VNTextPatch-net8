@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using NPOI.SS.UserModel;
+using ClosedXML.Excel;
 using VNTextPatch.Shared.Util;
 
 namespace VNTextPatch.Shared.Scripts
@@ -12,10 +12,10 @@ namespace VNTextPatch.Shared.Scripts
         private const string EmptyTextMarker = "(empty)";
 
         private readonly ExcelScriptCollection _collection;
-        private readonly IWorkbook _workbook;
-        private ISheet? _sheet;
+        private readonly IXLWorkbook _workbook;
+        private IXLWorksheet? _sheet;
 
-        public ExcelScript(ExcelScriptCollection collection, IWorkbook workbook)
+        public ExcelScript(ExcelScriptCollection collection, IXLWorkbook workbook)
         {
             _collection = collection;
             _workbook = workbook;
@@ -31,7 +31,7 @@ namespace VNTextPatch.Shared.Scripts
             if (location.Collection != _collection)
                 throw new InvalidOperationException();
 
-            _sheet = _workbook.GetSheet(location.ScriptName);
+            _sheet = _workbook.Worksheet(location.ScriptName);
         }
 
         public IEnumerable<ScriptString> GetStrings()
@@ -41,13 +41,13 @@ namespace VNTextPatch.Shared.Scripts
                 throw new Exception("_sheet is null");
             }
 
-            foreach (IRow row in _sheet)
+            foreach (IXLRow row in _sheet.RowsUsed())
             {
-                if (row.RowNum == 0)
+                if (row.RowNumber() == 1)
                     continue;
 
-                string? characterNames = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.TranslatedCharacter)?.StringCellValue) ??
-                                        StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.OriginalCharacter)?.StringCellValue);
+                string? characterNames = StringUtil.NullIfEmpty(GetCellValue(row, ExcelColumn.TranslatedCharacter)) ??
+                                        StringUtil.NullIfEmpty(GetCellValue(row, ExcelColumn.OriginalCharacter));
                 if (characterNames != null)
                 {
                     foreach (string characterName in SplitNames(characterNames))
@@ -65,21 +65,26 @@ namespace VNTextPatch.Shared.Scripts
             }
         }
 
-        private string? GetText(IRow row)
+        private static string GetCellValue(IXLRow row, ExcelColumn column)
         {
-            var originalText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.OriginalLine)?.StringCellValue);
+            return row.Cell((int)column + 1).GetString();
+        }
+
+        private string? GetText(IXLRow row)
+        {
+            var originalText = StringUtil.NullIfEmpty(GetCellValue(row, ExcelColumn.OriginalLine));
             if (originalText != null)
                 Total++;
 
-            var translatedText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.TranslatedLine)?.StringCellValue);
+            var translatedText = StringUtil.NullIfEmpty(GetCellValue(row, ExcelColumn.TranslatedLine));
             if (translatedText != null)
                 Translated++;
 
-            var checkedText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.CheckedLine)?.StringCellValue);
+            var checkedText = StringUtil.NullIfEmpty(GetCellValue(row, ExcelColumn.CheckedLine));
             if (checkedText != null)
                 Checked++;
 
-            var editedText = StringUtil.NullIfEmpty(row.GetCell((int)ExcelColumn.EditedLine)?.StringCellValue);
+            var editedText = StringUtil.NullIfEmpty(GetCellValue(row, ExcelColumn.EditedLine));
             if (editedText != null)
                 Edited++;
 
@@ -92,9 +97,9 @@ namespace VNTextPatch.Shared.Scripts
 
         public void WritePatched(IEnumerable<ScriptString> strings, ScriptLocation location)
         {
-            _sheet = _workbook.GetSheet(location.ScriptName);
+            _sheet = _workbook.Worksheet(location.ScriptName);
 
-            int rowNum = 1;
+            int rowNum = 2;
             List<string> pendingCharacterNames = new List<string>();
             foreach (ScriptString str in strings)
             {
@@ -104,7 +109,7 @@ namespace VNTextPatch.Shared.Scripts
                 }
                 else
                 {
-                    IRow row = _sheet.CreateRow(rowNum);
+                    IXLRow row = _sheet.Row(rowNum);
                     FillRow(row, pendingCharacterNames, str.Text);
                     pendingCharacterNames.Clear();
                     rowNum++;
@@ -112,7 +117,7 @@ namespace VNTextPatch.Shared.Scripts
             }
         }
 
-        private void FillRow(IRow row, List<string> characterNames, string message)
+        private void FillRow(IXLRow row, List<string> characterNames, string message)
         {
             if (characterNames.Count > 0)
                 FillCell(row, ExcelColumn.OriginalCharacter, JoinNames(characterNames));
@@ -126,11 +131,12 @@ namespace VNTextPatch.Shared.Scripts
             }
         }
 
-        private void FillCell(IRow row, ExcelColumn column, string value)
+        private void FillCell(IXLRow row, ExcelColumn column, string value)
         {
-            ICell cell = row.CreateCell((int)column);
-            cell.SetCellValue(value);
-            cell.CellStyle = _sheet?.GetColumnStyle((int)column);
+            IXLCell cell = row.Cell((int)column + 1);
+            cell.Value = value;
+            if (_sheet != null)
+                cell.Style = _sheet.Column((int)column + 1).Style;
         }
 
         public int Translated
@@ -196,5 +202,6 @@ namespace VNTextPatch.Shared.Scripts
             name = Regex.Replace(name, @"\\(.)", "$1");
             return name;
         }
+
     }
 }

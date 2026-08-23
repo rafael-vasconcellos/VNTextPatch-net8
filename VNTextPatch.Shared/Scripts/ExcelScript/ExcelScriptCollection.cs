@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
+using ClosedXML.Excel;
 
 namespace VNTextPatch.Shared.Scripts
 {
     public class ExcelScriptCollection : IScriptDisposableCollection, IEmptyExtractionCleanup
     {
-        private XSSFWorkbook _workbook;
+        private XLWorkbook _workbook;
         private ExcelScript _script;
         private bool _isEmpty;
 
@@ -29,7 +28,7 @@ namespace VNTextPatch.Shared.Scripts
                     CreateFile(filePath);
             }
 
-            _workbook = new XSSFWorkbook(filePath);
+            _workbook = new XLWorkbook(filePath);
             _script = new ExcelScript(this, _workbook);
         }
 
@@ -45,27 +44,28 @@ namespace VNTextPatch.Shared.Scripts
 
         public IEnumerable<string> Scripts
         {
-            get { return Enumerable.Range(0, _workbook.NumberOfSheets).Select(_workbook.GetSheetName); }
+            get { return _workbook.Worksheets.Select(ws => ws.Name); }
         }
 
         public bool Exists(string scriptName)
         {
-            return _workbook.GetSheet(scriptName) != null;
+            return _workbook.Worksheets.TryGetWorksheet(scriptName, out _);
         }
 
         public void Add(string scriptName)
         {
             if (_isEmpty)
             {
-                _workbook.SetSheetName(0, scriptName);
+                _workbook.Worksheet(1).Name = scriptName;
                 _isEmpty = false;
             }
             else
             {
-                ISheet sheet = _workbook.CloneSheet(0, scriptName);
-                for (int i = sheet.LastRowNum; i > 0; i--)
+                IXLWorksheet sheet = _workbook.Worksheet(1).CopyTo(scriptName);
+                int lastRow = sheet.LastRowUsed()?.RowNumber() ?? 1;
+                for (int i = lastRow; i > 1; i--)
                 {
-                    sheet.RemoveRow(sheet.GetRow(i));
+                    sheet.Row(i).Delete();
                 }
             }
         }
@@ -88,10 +88,9 @@ namespace VNTextPatch.Shared.Scripts
             {
                 using (Stream stream = File.Open(Name + ".temp", FileMode.Create))
                 {
-                    _workbook.Write(stream);
-                    _workbook.Close();
-                    _workbook.Dispose();
+                    _workbook.SaveAs(stream);
                 }
+                _workbook.Dispose();
                 File.Delete(Name);
                 File.Move(Name + ".temp", Name);
             }
@@ -110,13 +109,13 @@ namespace VNTextPatch.Shared.Scripts
                 .GetManifestResourceStream("VNTextPatch.Shared.template.xlsx");
 
             using var workbook = templateStream is not null
-                ? new XSSFWorkbook(templateStream)
-                : new XSSFWorkbook();
+                ? new XLWorkbook(templateStream)
+                : new XLWorkbook();
 
             if (templateStream is null)
-                workbook.CreateSheet("Script");
+                workbook.AddWorksheet("Script");
 
-            workbook.Write(stream);
+            workbook.SaveAs(stream);
         }
 
     }
