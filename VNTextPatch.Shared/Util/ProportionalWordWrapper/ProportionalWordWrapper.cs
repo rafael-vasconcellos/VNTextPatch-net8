@@ -15,9 +15,12 @@ namespace VNTextPatch.Shared.Util
             try
             {
                 var name = AppSettings.Configuration[fontName] ?? "Franklin Gothic Book";
-                var size = AppSettings.Configuration.GetValue<int>(fontSize, 40);
-                var bold = AppSettings.Configuration.GetValue<bool>(fontBold, false);
-                var width = AppSettings.Configuration.GetValue<int>(lineWidth, lineWidth.Contains("Secondary") ? 670 : 1000);
+                var size = GetInt(fontSize, 40);
+                var bold = GetBool(fontBold, false);
+                var width = GetInt(
+                    lineWidth,
+                    lineWidth.Contains("Secondary") ? 670 : 1000
+                );
 
 #if WINDOWS
                 return new WindowsTextMeasurer(name, size, bold, width);
@@ -32,5 +35,20 @@ namespace VNTextPatch.Shared.Util
             }
 
         }
+
+        private static int GetInt(string key, int defaultValue)
+        {
+            return int.TryParse(AppSettings.Configuration[key], out var value)
+                ? value
+                : defaultValue;
+        }
+
+        private static bool GetBool(string key, bool defaultValue)
+        {
+            return bool.TryParse(AppSettings.Configuration[key], out var value)
+                ? value
+                : defaultValue;
+        }
+
     }
 }

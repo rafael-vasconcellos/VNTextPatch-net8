@@ -7,6 +7,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
+    <PublishTrimmed>true</PublishTrimmed>
     <!-- <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract> -->
     <!-- <RuntimeIdentifiers>browser-wasm;win-x64;linux-x64;osx-x64</RuntimeIdentifiers> -->
     <!-- <IlcOptimizationPreference>Size</IlcOptimizationPreference> -->
