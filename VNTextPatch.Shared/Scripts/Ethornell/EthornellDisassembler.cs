@@ -133,7 +133,7 @@ namespace VNTextPatch.Shared.Scripts.Ethornell
                 return false;
 
             byte[] data = new byte[magic.Length];
-            stream.Read(data, 0, data.Length);
+            stream.ReadExactly(data, 0, data.Length);
             stream.Position = 0;
             return data.SequenceEqual(magic);
         }

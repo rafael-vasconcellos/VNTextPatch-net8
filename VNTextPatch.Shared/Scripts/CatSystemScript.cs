@@ -187,7 +187,7 @@ namespace VNTextPatch.Shared.Scripts
                 byte[] uncompressedData = new byte[uncompressedLength];
                 using (DeflateStream decompressionStream = new DeflateStream(inputStream, CompressionMode.Decompress))
                 {
-                    decompressionStream.Read(uncompressedData, 0, uncompressedData.Length);
+                    decompressionStream.ReadExactly(uncompressedData, 0, uncompressedData.Length);
                 }
                 return uncompressedData;
             }

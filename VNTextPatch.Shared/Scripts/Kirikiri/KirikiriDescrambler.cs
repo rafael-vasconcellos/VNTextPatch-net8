@@ -86,7 +86,7 @@ namespace VNTextPatch.Shared.Scripts.Kirikiri
             uncompressedData[1] = 0xFE;
             using (DeflateStream uncompressedStream = new DeflateStream(compressedStream, CompressionMode.Decompress, true))
             {
-                uncompressedStream.Read(uncompressedData, 2, uncompressedLength);
+                uncompressedStream.ReadExactly(uncompressedData, 2, uncompressedLength);
             }
             return new ArraySegment<byte>(uncompressedData);
         }
