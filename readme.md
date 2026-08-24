@@ -16,9 +16,13 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 + enhance extraction statistics logs
 + removed the dependency on `names.xml` and `template.xlsx`
 + add `-h` and `--help` options
++ add JsonlScript for handling JSON Lines format
++ add output format option and improve usage instructions
 
 #### replaced libs
-System.Configuration -> Microsoft.Extensions.Configuration  
++ System.Configuration -> Microsoft.Extensions.Configuration  
++ Newtonsoft.json -> System.Text.Json
++ NPOI -> ClosedXML
 
 
 ## About VNTextPatch
@@ -55,16 +59,25 @@ The tool can extract text into Excel workbooks (.xlsx) or JSON files (.json), an
 The command line syntax is as follows:
 
 ```
+Usage:
+
+VNTextPatch extractlocal <source> <scripts>
+VNTextPatch insertlocal <source> <scripts> <patched>
+VNTextPatch insertgdocs <source> <spreadsheetId> <patched>
+
+    <source>     folder containing original game files
+    <scripts>    folder to receive text files
+    <patched>    folder to receive patched game files
+    <spreadsheetId>    ID of a Google Docs spreadsheet
+
 Excel:
-VNTextPatch extractlocal <folder containing original game files> script.xlsx
-VNTextPatch insertlocal <folder containing original game files> script.xlsx <folder to receive patched game files>
 
-JSON:
-VNTextPatch extractlocal <folder containing original game files> <folder to receive .json files>
-VNTextPatch insertlocal <folder containing original game files> <folder containing .json files> <folder to receive patched game files>
+VNTextPatch extractlocal <source> <script.xlsx>
+VNTextPatch insertlocal <source> <script.xlsx> <patched>
 
-Google Documents:
-VNTextPatch insertgdocs <folder containing original game files> <Google Docs spreadsheet identifier> <folder to receive patched game files>
+Options:
+    -h, --help    Displays this screen
+    --output=<value>    Output format of the script text files. JSON or JSONL. Default is JSONL
 ```
 
 The input folder should only contain the original scenario files. If it contains files of another format, VNTextPatch may not be able to determine the input format to use.
