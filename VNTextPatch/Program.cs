@@ -219,7 +219,12 @@ namespace VNTextPatch
                 if (inputLocation.ScriptName != null)
                     throw new ArgumentException("Input path and script path must be of the same type (file or folder).");
 
-                FolderScriptCollection collection = new FolderScriptCollection(textPath, ".json");
+                string? firstFilePath = Directory.EnumerateFiles(textPath, "*", SearchOption.AllDirectories).FirstOrDefault();
+                string extension = firstFilePath != null? 
+                    Path.GetExtension(firstFilePath).ToLower() :
+                    "." + GlobalVariables.OutputFormat;
+
+                FolderScriptCollection collection = new FolderScriptCollection(textPath, extension);
                 return new ScriptLocation(collection: collection, scriptName: null);
             }
 
@@ -309,10 +314,23 @@ namespace VNTextPatch
             string? assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
             string? version = Assembly.GetExecutingAssembly().GetName().Version?.ToString();
             Console.WriteLine($"VNTextPatch v. {version}");
-            Console.WriteLine($"Usage:");
-            Console.WriteLine($"    {assemblyName} extractlocal infile|infolder scriptfile|scriptfolder");
-            Console.WriteLine($"    {assemblyName} insertlocal infile|infolder scriptfile|scriptfolder outfile|outfolder");
-            Console.WriteLine($"    {assemblyName} insertgdocs infile|infolder spreadsheetId outfile|outfolder");
+            Console.WriteLine($"Usage:\n");
+
+            Console.WriteLine($"{assemblyName} extractlocal <source> <scripts>");
+            Console.WriteLine($"{assemblyName} insertlocal <source> <scripts> <patched>");
+            Console.WriteLine($"{assemblyName} insertgdocs <source> <spreadsheetId> <patched>\n");
+            Console.WriteLine($"    <source>     folder containing original game files");
+            Console.WriteLine($"    <scripts>    folder to receive text files");
+            Console.WriteLine($"    <patched>    folder to receive patched game files");
+            Console.WriteLine($"    <spreadsheetId>    ID of a Google Docs spreadsheet\n");
+
+            Console.WriteLine($"Excel:\n");
+            Console.WriteLine($"{assemblyName} extractlocal <source> <script.xlsx>");
+            Console.WriteLine($"{assemblyName} insertlocal <source> <script.xlsx> <patched>\n");
+
+            Console.WriteLine($"Options:");
+            Console.WriteLine($"    -h, --help    Displays this screen");
+            Console.WriteLine($"    --output=<value>    Output format of the script text files. JSON or JSONL. Default is JSONL");
         }
 
         private class Options
@@ -356,6 +374,9 @@ namespace VNTextPatch
                     {
                         case "format":
                             options.Format = value;
+                            break;
+                        case "output":
+                            GlobalVariables.OutputFormat = value;
                             break;
                     }
                 }
