@@ -90,10 +90,19 @@ namespace VNTextPatch.Shared.Scripts
                 }
             }
 
-            using StreamWriter writer = new StreamWriter(File.Open(location.ToFilePath(), FileMode.Create));
+            string path = location.ToFilePath();
+            int? lineCount = File.Exists(path)? 
+                File.ReadLines(path).Count(
+                    //line => !string.IsNullOrWhiteSpace(line)
+                )
+                : null;
+
+            using StreamWriter writer = new StreamWriter(File.Open(path, FileMode.Append));
             writer.NewLine = "\n";
-            foreach (Entry entry in entries)
+            for (int i = 0; i < entries.Count; i++)
             {
+                Entry entry = entries[i];
+                if (lineCount != null && i<lineCount) continue;
                 writer.WriteLine(JsonSerializer.Serialize(entry, Context.Entry));
             }
         }
