@@ -17,7 +17,7 @@ namespace VNTextPatch.Shared.Util
             try
             {
                 return new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .SetBasePath(BasePath())
                     .AddXmlFile("settings.xml", optional: true, reloadOnChange: true)
                     .Build();
 
@@ -29,5 +29,23 @@ namespace VNTextPatch.Shared.Util
             }
 
         }
+
+        public static string BasePath()
+        {
+            string currentDirectory = Directory.GetCurrentDirectory();
+
+            try
+            {
+                return Directory
+                    .EnumerateFiles(currentDirectory, "settings.xml", SearchOption.AllDirectories)
+                    .Select(Path.GetDirectoryName)
+                    .FirstOrDefault() ?? currentDirectory;
+
+            } catch
+            {
+                return currentDirectory;
+            }
+        }
+
     }
 }
