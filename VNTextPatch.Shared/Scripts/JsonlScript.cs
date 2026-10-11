@@ -79,13 +79,13 @@ namespace VNTextPatch.Shared.Scripts
                 {
                     if (pendingEntry != null)
                     {
-                        pendingEntry.Message = str.Text;
+                        pendingEntry.Message = Flatten(str.Text);
                         entries.Add(pendingEntry);
                         pendingEntry = null;
                     }
                     else
                     {
-                        entries.Add(new Entry { Message = str.Text });
+                        entries.Add(new Entry { Message = Flatten(str.Text) });
                     }
                 }
             }
@@ -106,6 +106,9 @@ namespace VNTextPatch.Shared.Scripts
                 writer.WriteLine(JsonSerializer.Serialize(entry, Context.Entry));
             }
         }
+
+        private static string Flatten(string text) =>
+            text.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ').Trim();
 
         private class Entry
         {
@@ -137,5 +140,6 @@ namespace VNTextPatch.Shared.Scripts
         private partial class JsonlScriptContext : JsonSerializerContext
         {
         }
+
     }
 }

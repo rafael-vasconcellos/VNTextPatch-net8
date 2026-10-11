@@ -2,7 +2,6 @@
 <settings>
   <!-- When using an API key to access Google spreadsheets -->
   <GoogleApiKey></GoogleApiKey>
-
   <!-- Instead of using an API key, you can also use a service account.
        This way, you don't have to make your spreadsheet public. -->
   <!-- To use a service account, download its private key
