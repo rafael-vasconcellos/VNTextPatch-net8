@@ -96,10 +96,16 @@ namespace VNTextPatch.Shared.Scripts
                     //line => !string.IsNullOrWhiteSpace(line)
                 )
                 : null;
+            
+            if (lineCount != null && lineCount>=entries.Count)
+            {
+                File.WriteAllText(path, string.Empty);
+                lineCount = null;
+            }
 
             using StreamWriter writer = new StreamWriter(File.Open(path, FileMode.Append));
             writer.NewLine = "\n";
-            for (int i = 0; i < entries.Count; i++)
+            for (int i = 0; i<entries.Count; i++)
             {
                 Entry entry = entries[i];
                 if (lineCount != null && i<lineCount) continue;
