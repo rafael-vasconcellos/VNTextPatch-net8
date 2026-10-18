@@ -18,6 +18,7 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 + add `-h` and `--help` options
 + add JsonlScript for handling JSON Lines format
 + add output format option and improve usage instructions
++ flexibilize the usage of `settings.xml`
 
 #### replaced libs
 + System.Configuration -> Microsoft.Extensions.Configuration  
