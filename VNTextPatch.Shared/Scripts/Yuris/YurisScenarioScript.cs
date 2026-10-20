@@ -102,6 +102,10 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 BinaryPatcher patcher = new BinaryPatcher(inputStream, outputStream, a => _attributeValuesOffset + a, o => o - _attributeValuesOffset);
                 foreach (List<YurisAttribute> attrs in GetStringAttributeGroups())
                 {
+                    string? text = GetNextMessage(stringEnumerator);
+                    if (text == null)
+                        continue; // Translation ran out: leave this group untouched (original bytes get copied by the next CopyUpTo)
+
                     for (int i = 0; i < attrs.Count; i++)
                     {
                         patcher.CopyUpTo(attrs[i].ValueOffset);
@@ -109,7 +113,6 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                         byte[] newData;
                         if (i == 0)
                         {
-                            string text = GetNextMessage(stringEnumerator);
                             newData = SerializeAttributeValue(attrs[i], text);
                         }
                         else
@@ -146,10 +149,10 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             }
         }
 
-        private static string GetNextMessage(IEnumerator<ScriptString> stringEnumerator)
+        private static string? GetNextMessage(IEnumerator<ScriptString> stringEnumerator)
         {
             if (!stringEnumerator.MoveNext())
-                throw new InvalidDataException("Not enough lines in translated script");
+                return null;
 
             if (stringEnumerator.Current.Type == ScriptStringType.CharacterName)
             {
