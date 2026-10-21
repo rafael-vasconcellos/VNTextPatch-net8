@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using VNTextPatch.Archives;
 using VNTextPatch.Shared;
 using VNTextPatch.Shared.Scripts;
 using VNTextPatch.Shared.Util;
@@ -32,6 +33,20 @@ namespace VNTextPatch
 
                     case "insertlocal":
                         InsertLocal(args, options);
+                        break;
+                    
+                    case "listfiles":
+                        var archive = new Archive(args[1], null);
+                        archive.ListFiles(args.Contains("--recursive"));
+                        break;
+                    
+                    case "unpacklocal":
+                        var archive2 = new Archive(args[1], null);
+                        archive2.UnpackLocal(args[2], args.Length==4? args[3] : null);
+                        break;
+                    
+                    case "packlocal":
+                        Archive.PackLocal(args[1], args[2]);
                         break;
 
                     case "insertgdocs":
