@@ -34,23 +34,23 @@ namespace VNTextPatch.Archives
         private static readonly byte[] Magic =
             { 0x58, 0x50, 0x33, 0x0D, 0x0A, 0x20, 0x0A, 0x1A, 0x8B, 0x67, 0x01 };
 
-        private readonly FileStream _stream;
-        private readonly List<Entry> _entries;
+        private FileStream? _stream;
+        private List<Entry>? _entries;
         private bool _disposed;
 
-        public string? Extension => ".xp3";
+        private FileStream LoadedStream => _stream
+            ?? throw new InvalidOperationException("O arquivo XP3 ainda não foi carregado.");
 
-        private KirikiriXp3(FileStream stream, List<Entry> entries)
-        {
-            _stream = stream;
-            _entries = entries;
-        }
+        private List<Entry> LoadedEntries => _entries
+            ?? throw new InvalidOperationException("O arquivo XP3 ainda não foi carregado.");
+
+        public string? Extension => ".xp3";
 
         /// <summary>
         /// Abre o arquivo XP3 e carrega seu índice. A chave é ignorada:
         /// esta implementação não suporta XP3 criptografado.
         /// </summary>
-        public static IArchive Load(string filePath, string? encriptionKey)
+        public void Load(string filePath, string? encriptionKey)
         {
             if (string.IsNullOrWhiteSpace(filePath))
                 throw new ArgumentException("O caminho do arquivo é obrigatório.", nameof(filePath));
@@ -66,7 +66,8 @@ namespace VNTextPatch.Archives
             {
                 byte[] index = ReadIndex(stream);
                 List<Entry> entries = ParseIndex(index);
-                return new KirikiriXp3(stream, entries);
+                _stream = stream;
+                _entries = entries;
             }
             catch
             {
@@ -82,9 +83,10 @@ namespace VNTextPatch.Archives
         public Dictionary<string, object> ListFiles(bool recursive)
         {
             ThrowIfDisposed();
+            List<Entry> entries = LoadedEntries;
 
             var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            foreach (Entry entry in _entries)
+            foreach (Entry entry in entries)
             {
                 string name = NormalizeArchivePath(entry.Name);
                 if (!recursive && name.Contains('/'))
@@ -113,18 +115,19 @@ namespace VNTextPatch.Archives
             if (string.IsNullOrWhiteSpace(outputPath))
                 throw new ArgumentException("A pasta de saída é obrigatória.", nameof(outputPath));
 
+            List<Entry> entries = LoadedEntries;
             string root = Path.GetFullPath(outputPath);
             if (!Directory.Exists(root)) Directory.CreateDirectory(root);
 
             List<Entry> selected;
             if (string.IsNullOrWhiteSpace(pathToExtract))
             {
-                selected = _entries;
+                selected = entries;
             }
             else
             {
                 string requested = NormalizeArchivePath(pathToExtract.Trim().TrimEnd('/', '\\'));
-                Entry? exact = _entries.FirstOrDefault(e =>
+                Entry? exact = entries.FirstOrDefault(e =>
                     string.Equals(
                         NormalizeArchivePath(e.Name), requested, StringComparison.OrdinalIgnoreCase
                     )
@@ -137,7 +140,7 @@ namespace VNTextPatch.Archives
                 else
                 {
                     string prefix = requested + "/";
-                    selected = _entries.Where(e =>
+                    selected = entries.Where(e =>
                         NormalizeArchivePath(e.Name).StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
                     ).ToList();
 
@@ -159,7 +162,7 @@ namespace VNTextPatch.Archives
         /// Cria um XP3 com segmentos sem compressão a partir de todos os arquivos
         /// encontrados recursivamente em pathToPack. O índice é comprimido com zlib.
         /// </summary>
-        public static void Pack(string pathToPack, string outputPath)
+        public void Pack(string pathToPack, string outputPath)
         {
             if (string.IsNullOrWhiteSpace(pathToPack))
                 throw new ArgumentException("A pasta de origem é obrigatória.", nameof(pathToPack));
@@ -245,11 +248,16 @@ namespace VNTextPatch.Archives
                 return;
 
             _disposed = true;
-            _stream.Dispose();
+
+            FileStream? stream = _stream;
+            _stream = null;
+            _entries = null;
+            stream?.Dispose();
         }
 
         private void ExtractEntry(Entry entry, string destination)
         {
+            FileStream stream = LoadedStream;
             uint checksum = 1;
             ulong total = 0;
 
@@ -261,7 +269,7 @@ namespace VNTextPatch.Archives
                     throw new InvalidDataException($"Segmento grande demais para esta implementação: {entry.Name}");
 
                 ulong totalBeforeSegment = total;
-                _stream.Position = checked((long)segment.Offset);
+                stream.Position = checked((long)segment.Offset);
                 int storedSize = checked((int)segment.ArchiveSize);
 
                 if (segment.Flags == 0)
@@ -269,11 +277,11 @@ namespace VNTextPatch.Archives
                     if (segment.ArchiveSize != segment.OriginalSize)
                         throw new InvalidDataException($"Tamanho inválido no segmento: {entry.Name}");
 
-                    CopyExactlyAndChecksum(_stream, output, storedSize, ref checksum, ref total);
+                    CopyExactlyAndChecksum(stream, output, storedSize, ref checksum, ref total);
                 }
                 else if (segment.Flags == 1)
                 {
-                    byte[] compressed = ReadExactly(_stream, storedSize);
+                    byte[] compressed = ReadExactly(stream, storedSize);
                     using var inputMemory = new MemoryStream(compressed, writable: false);
                     using var zlib = new ZLibStream(inputMemory, CompressionMode.Decompress);
                     CopyToAndChecksum(zlib, output, ref checksum, ref total);
