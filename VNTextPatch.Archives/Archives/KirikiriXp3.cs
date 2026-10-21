@@ -80,24 +80,21 @@ namespace VNTextPatch.Archives
         /// Lista os caminhos internos. Se recursive for false, retorna somente
         /// arquivos diretamente na raiz do arquivo XP3.
         /// </summary>
-        public Dictionary<string, object> ListFiles(bool recursive)
+        public HashSet<string> ListFiles(bool recursive)
         {
             ThrowIfDisposed();
             List<Entry> entries = LoadedEntries;
 
-            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var result = new HashSet<string>();
             foreach (Entry entry in entries)
             {
                 string name = NormalizeArchivePath(entry.Name);
                 if (!recursive && name.Contains('/'))
-                    continue;
-
-                result[name] = new Xp3FileInfo
                 {
-                    Path = name,
-                    OriginalSize = checked((long)entry.OriginalSize),
-                    ArchiveSize = checked((long)entry.ArchiveSize)
-                };
+                    name = name.Split('/')[0] + '/';
+                }
+
+                result.Add(name);
             }
 
             return result;
@@ -195,6 +192,7 @@ namespace VNTextPatch.Archives
             {
                 string relative = Path.GetRelativePath(inputRoot, file).Replace('\\', '/');
                 ValidateArchivePath(relative);
+                Console.WriteLine(relative);
 
                 ulong offset = checked((ulong)output.Position);
                 uint checksum = 1;
