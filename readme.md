@@ -40,6 +40,17 @@ Base fork: [hentaitaku/VNTranslationTools](https://github.com/hentaitaku/VNTrans
 + Newtonsoft.json -> System.Text.Json
 + NPOI -> ClosedXML
 
+## To do
+
+pack/unpack of some popular engines
+
+- Kirikiri (xp3)
+- YU-RIS (ypf)
+- Godot
+- Tyrano
+- Unity
+- Ren'py (rpa)
+
 
 ## About VNTextPatch
 
