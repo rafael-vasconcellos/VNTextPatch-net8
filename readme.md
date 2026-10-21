@@ -4,7 +4,6 @@ A tool for extracting original text from, and patching translated text into, a v
 
 Original repo: [arcusmaximus/VNTranslationTools](https://github.com/arcusmaximus/VNTranslationTools)  
 Base fork: [hentaitaku/VNTranslationTools](https://github.com/hentaitaku/VNTranslationTools)  
-WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web](https://github.com/rafael-vasconcellos/VNTextPatch-web)
 
 
 ## Changelog
@@ -28,6 +27,17 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 + System.Configuration -> Microsoft.Extensions.Configuration  
 + Newtonsoft.json -> System.Text.Json
 + NPOI -> ClosedXML
+
+## To do
+
+pack/unpack of some popular engines
+
+- Kirikiri (xp3)
+- YU-RIS (ypf)
+- Godot
+- Tyrano
+- Unity
+- Ren'py (rpa)
 
 
 ## About VNTextPatch
