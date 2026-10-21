@@ -12,9 +12,6 @@ using System.Buffers.Binary;
 
 namespace VNTextPatch.Archives
 {
-    /// <summary>
-    /// Metadados expostos por ListFiles. O valor object do dicionário será deste tipo.
-    /// </summary>
     public sealed class Xp3FileInfo
     {
         public string Path { get; init; } = "";
@@ -25,8 +22,7 @@ namespace VNTextPatch.Archives
     }
 
     /// <summary>
-    /// Leitor e empacotador de XP3 padrão, compatível com o subconjunto tratado
-    /// pelo script Python original: índice XP3 normal e segmentos sem compressão
+    /// Leitor e empacotador de XP3 padrão. índice XP3 normal e segmentos sem compressão
     /// ou comprimidos com zlib.
     /// </summary>
     public sealed class KirikiriXp3 : IArchive
@@ -150,8 +146,10 @@ namespace VNTextPatch.Archives
             {
                 string relative = NormalizeArchivePath(entry.Name);
                 string destination = SafeOutputPath(root, relative);
+                Console.WriteLine(relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                 ExtractEntry(entry, destination);
+                DescrambleTextFile(destination);
             }
         }
 
@@ -304,6 +302,73 @@ namespace VNTextPatch.Archives
 
             if (entry.Checksum.HasValue && checksum != entry.Checksum.Value)
                 throw new InvalidDataException($"Checksum Adler-32 incorreto para {entry.Name}");
+        }
+
+        /// <summary>
+        /// Scripts de texto do Kirikiri (.ks, .tjs...) costumam ser gravados "scrambled":
+        /// FE FE <modo> FF FE + UTF-16LE embaralhado. Depois que o Adler-32 do XP3 foi
+        /// verificado, converte o arquivo extraído para UTF-16LE com BOM (FF FE).
+        /// Mesmo algoritmo de VNTextPatch.Shared.Scripts.Kirikiri.KirikiriDescrambler.
+        /// </summary>
+        private static void DescrambleTextFile(string path)
+        {
+            byte[] header = new byte[5];
+            using (var probe = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                if (probe.Read(header, 0, header.Length) < header.Length)
+                    return;
+            }
+
+            if (header[0] != 0xFE || header[1] != 0xFE || header[3] != 0xFF || header[4] != 0xFE)
+                return;
+
+            byte mode = header[2];
+            if (mode > 2)
+                return; // modo desconhecido: mantém o arquivo como veio do XP3.
+
+            byte[] data = File.ReadAllBytes(path);
+            byte[] result;
+
+            if (mode == 2)
+            {
+                using var compressed = new MemoryStream(data, 5, data.Length - 5, writable: false);
+                using var reader = new BinaryReader(compressed);
+                reader.ReadInt64(); // tamanho comprimido
+                int uncompressedLength = checked((int)reader.ReadInt64());
+                reader.ReadInt16(); // cabeçalho zlib (2 bytes) antes do deflate puro
+
+                result = new byte[2 + uncompressedLength];
+                result[0] = 0xFF;
+                result[1] = 0xFE;
+                using var deflate = new DeflateStream(compressed, CompressionMode.Decompress);
+                deflate.ReadExactly(result, 2, uncompressedLength);
+            }
+            else
+            {
+                for (int i = 5; i + 1 < data.Length; i += 2)
+                {
+                    if (mode == 0)
+                    {
+                        if (data[i + 1] == 0 && data[i] < 0x20)
+                            continue;
+
+                        data[i + 1] ^= (byte)(data[i] & 0xFE);
+                        data[i] ^= 1;
+                    }
+                    else
+                    {
+                        int c = data[i] | (data[i + 1] << 8);
+                        c = ((c & 0xAAAA) >> 1) | ((c & 0x5555) << 1);
+                        data[i] = (byte)c;
+                        data[i + 1] = (byte)(c >> 8);
+                    }
+                }
+
+                result = new byte[data.Length - 3];
+                Array.Copy(data, 3, result, 0, result.Length);
+            }
+
+            File.WriteAllBytes(path, result);
         }
 
         private static byte[] ReadIndex(FileStream stream)
