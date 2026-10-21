@@ -51,6 +51,7 @@
   
   <ItemGroup>
     <ProjectReference Include="..\VNTextPatch.Shared\VNTextPatch.Shared.csproj" />
+    <ProjectReference Include="..\VNTextPatch.Archives\VNTextPatch.Archives.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
