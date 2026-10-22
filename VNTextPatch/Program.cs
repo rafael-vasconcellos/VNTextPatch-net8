@@ -36,17 +36,17 @@ namespace VNTextPatch
                         break;
                     
                     case "listfiles":
-                        var archive = new Archive(args[1], null);
+                        var archive = new Archive(args[1], options.EncriptionKey);
                         archive.ListFiles(args.Contains("--recursive"));
                         break;
                     
                     case "unpacklocal":
-                        var archive2 = new Archive(args[1], null);
+                        var archive2 = new Archive(args[1], options.EncriptionKey);
                         archive2.UnpackLocal(args[2], args.Length==4? args[3] : null);
                         break;
                     
                     case "packlocal":
-                        Archive.PackLocal(args[1], args[2]);
+                        Archive.PackLocal(args[1], args[2], options.EncriptionKey);
                         break;
 
                     case "insertgdocs":
@@ -351,6 +351,7 @@ namespace VNTextPatch
 
         private class Options
         {
+            public string? EncriptionKey;
             public static Options Parse(string[] args, out string[] unnamedArgs)
             {
                 Options options = new Options();
@@ -393,6 +394,9 @@ namespace VNTextPatch
                             break;
                         case "output":
                             GlobalVariables.OutputFormat = value;
+                            break;
+                        case "key":
+                            options.EncriptionKey = value;
                             break;
                     }
                 }

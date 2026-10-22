@@ -103,6 +103,7 @@ namespace VNTextPatch.Archives
                 _stream = stream;
                 _info = info;
                 _entries = entries;
+                PackVersion = info.Version;
             }
             catch
             {
@@ -119,6 +120,7 @@ namespace VNTextPatch.Archives
         public HashSet<string> ListFiles(bool recursive)
         {
             ThrowIfDisposed();
+            Console.WriteLine($"Version: {PackVersion}");
             List<Entry> entries = LoadedEntries;
 
             var result = new HashSet<string>();
@@ -145,6 +147,7 @@ namespace VNTextPatch.Archives
         {
             ThrowIfDisposed();
             Console.WriteLine("Unpacking...");
+            Console.WriteLine($"Version: {PackVersion}");
 
             if (string.IsNullOrWhiteSpace(outputPath))
                 throw new ArgumentException("A pasta de saída é obrigatória.", nameof(outputPath));
