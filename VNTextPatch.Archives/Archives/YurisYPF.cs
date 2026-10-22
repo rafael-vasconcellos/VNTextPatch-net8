@@ -26,7 +26,7 @@ namespace VNTextPatch.Archives
         private const int HeaderSize = 0x20;
         private const int MinVersion = 234;           // 0xEA
         private const int MaxVersion = 500;           // 0x1F4
-        private const int DefaultPackVersion = 500;
+        private const int DefaultPackVersion = 476;
         private const int FirstVersionWith64BitOffsets = 479;
         private const byte TypeYcg = 8;
 
@@ -200,12 +200,14 @@ namespace VNTextPatch.Archives
         /// Arquivos com extensão ".ycg" perdem o sufixo no nome e recebem o tipo YCG.
         /// Arquivos vazios não são suportados.
         /// </summary>
-        public void Pack(string pathToPack, string outputPath)
+        public void Pack(string pathToPack, string outputPath, string? encriptionKey)
         {
             if (string.IsNullOrWhiteSpace(pathToPack))
                 throw new ArgumentException("A pasta de origem é obrigatória.", nameof(pathToPack));
             if (string.IsNullOrWhiteSpace(outputPath))
                 throw new ArgumentException("O caminho do YPF de saída é obrigatório.", nameof(outputPath));
+            if (!string.IsNullOrEmpty(encriptionKey))
+                PackVersion = int.Parse(encriptionKey);
 
             VersionInfo info = VersionInfo.Create(PackVersion, null);
             string inputRoot = Path.GetFullPath(pathToPack);
