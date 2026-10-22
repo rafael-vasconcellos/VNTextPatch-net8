@@ -4,7 +4,8 @@ namespace VNTextPatch.Archives
     {
         private static readonly IArchive[] Archives =
         {
-            new KirikiriXp3()
+            new KirikiriXp3(),
+            new YurisYPF()
         };
 
         public static IArchive GetArchive(string extension)
