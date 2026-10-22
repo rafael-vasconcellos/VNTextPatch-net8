@@ -6,6 +6,6 @@ namespace VNTextPatch.Archives
         string? Extension { get; }
         HashSet<string> ListFiles(bool recursive);
         void Extract(string outputPath, string? pathToExtract);
-        void Pack(string pathToPack, string outputPath);
+        void Pack(string pathToPack, string outputPath, string? encriptionKey);
     }
 }
