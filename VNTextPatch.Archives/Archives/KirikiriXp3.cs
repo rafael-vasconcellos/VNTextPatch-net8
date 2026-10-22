@@ -157,7 +157,7 @@ namespace VNTextPatch.Archives
         /// Cria um XP3 com segmentos sem compressão a partir de todos os arquivos
         /// encontrados recursivamente em pathToPack. O índice é comprimido com zlib.
         /// </summary>
-        public void Pack(string pathToPack, string outputPath)
+        public void Pack(string pathToPack, string outputPath, string? encriptionKey = null)
         {
             if (string.IsNullOrWhiteSpace(pathToPack))
                 throw new ArgumentException("A pasta de origem é obrigatória.", nameof(pathToPack));
