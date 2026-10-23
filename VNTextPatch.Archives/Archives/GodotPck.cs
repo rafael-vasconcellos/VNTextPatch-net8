@@ -1,6 +1,8 @@
 // GodotPck.cs
-// Implementação de VNTextPatch.Archives.IArchive para arquivos PCK do Godot (formatos 0 a 3:
-// Godot 2, 3, 4.0+ e 4.5+). Baseada em https://github.com/DmitriySalnikov/GodotPCKExplorer
+// Implementação de VNTextPatch.Archives.IArchive para arquivos PCK do Godot (formatos 0 a 4:
+// Godot 2, 3, 4.0+, 4.5+ e 4.7+). O formato 4 tem o mesmo layout do 3; os recursos novos dele
+// (pacote "sparse" e arquivos "delta") não são suportados e geram NotSupportedException.
+// Baseada em https://github.com/DmitriySalnikov/GodotPCKExplorer
 // (PCKReader / PCKPacker), mas sem a biblioteca nativa mbedTLS: o AES-256-CFB128 usado pelo Godot
 // é montado em cima de Aes (modo ECB) do .NET, o que mantém o projeto compatível com Native AOT.
 // GodotExe herda desta classe e só muda a extensão e o destino de Pack (PCK embutido no executável).
@@ -19,11 +21,13 @@ namespace VNTextPatch.Archives
     public class GodotPck : IArchive
     {
         private const int Magic = 0x43504447;              // "GDPC"
-        private const int MaxFormat = 3;
+        private const int MaxFormat = 4;
         private const int FlagEncryptedIndex = 1 << 0;
         private const int FlagRelativeFileBase = 1 << 1;   // 4.3+
+        private const int FlagSparseBundle = 1 << 2;       // formato 4: arquivos soltos ao lado do PCK
         private const int FileFlagEncrypted = 1 << 0;
         private const int FileFlagRemoval = 1 << 1;        // 4.4+
+        private const int FileFlagDelta = 1 << 2;          // formato 4: a entrada é um patch binário
         private const int BlockSize = 16;
         private const int EncryptedHeaderSize = 16 + 8 + BlockSize; // MD5 + tamanho + IV
         private const int BufferSize = 1024 * 1024;        // múltiplo de BlockSize
@@ -54,7 +58,7 @@ namespace VNTextPatch.Archives
         public virtual string? Extension => ".pck";
 
         /// <summary>
-        /// Formato do PCK criado por Pack (0 a 3). A interface IArchive.Pack não recebe versão, então
+        /// Formato do PCK criado por Pack (0 a 4). A interface IArchive.Pack não recebe versão, então
         /// ela é propriedade da instância. Load atualiza o valor; se o destino de Pack já existir e for
         /// um PCK válido, a versão dele tem prioridade. Padrão: 2 (Godot 4.0 a 4.4).
         /// </summary>
@@ -161,6 +165,11 @@ namespace VNTextPatch.Archives
                         throw new FileNotFoundException($"O caminho não existe no arquivo PCK: {pathToExtract}");
                 }
             }
+
+            Entry? deltaEntry = selected.FirstOrDefault(e => e.IsDelta && !e.IsRemoval);
+            if (deltaEntry != null)
+                throw new NotSupportedException(
+                    $"Arquivo 'delta' (patch binário, formato 4) não é suportado: {deltaEntry.ExtractName}");
 
             if (_key == null && selected.Any(e => e.IsEncrypted))
                 throw new ArgumentException(
@@ -357,6 +366,10 @@ namespace VNTextPatch.Archives
             if (format >= 2)
             {
                 flags = reader.ReadInt32();
+                if ((flags & FlagSparseBundle) != 0)
+                    throw new NotSupportedException(
+                        "PCK 'sparse bundle' (formato 4) não é suportado: os arquivos ficam fora do PCK.");
+
                 fileBase = reader.ReadInt64();
                 if ((flags & FlagRelativeFileBase) != 0 || format >= 3)
                     fileBase += start;
@@ -421,6 +434,7 @@ namespace VNTextPatch.Archives
 
                     bool encrypted = (flags & FileFlagEncrypted) != 0;
                     bool removal = (flags & FileFlagRemoval) != 0 && AtLeast(header.Engine, 4, 4);
+                    bool delta = (flags & FileFlagDelta) != 0 && header.Format >= 4;
                     if (!removal)
                     {
                         long stored = encrypted ? EncryptedHeaderSize + AlignUp(size, BlockSize) : size;
@@ -428,7 +442,7 @@ namespace VNTextPatch.Archives
                             throw new InvalidDataException($"Entrada PCK fora dos limites do arquivo: {path}");
                     }
 
-                    var entry = new Entry(path, offset, size, md5, encrypted, removal);
+                    var entry = new Entry(path, offset, size, md5, encrypted, removal, delta);
                     ValidateArchivePath(entry.ExtractName);
                     entries[entry.ExtractName] = entry;
                 }
@@ -832,8 +846,9 @@ namespace VNTextPatch.Archives
 
         private sealed class Entry
         {
-            public Entry(string path, long offset, long size, byte[] md5, bool encrypted, bool removal)
+            public Entry(string path, long offset, long size, byte[] md5, bool encrypted, bool removal, bool delta)
             {
+                IsDelta = delta;
                 Offset = offset;
                 Size = size;
                 Md5 = md5;
@@ -856,6 +871,7 @@ namespace VNTextPatch.Archives
             public byte[] Md5 { get; }
             public bool IsEncrypted { get; }
             public bool IsRemoval { get; }
+            public bool IsDelta { get; }
         }
 
         private sealed class PackEntry
