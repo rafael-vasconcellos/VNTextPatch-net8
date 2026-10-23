@@ -104,6 +104,7 @@ namespace VNTextPatch.Archives
         public void Extract(string outputPath, string? pathToExtract)
         {
             ThrowIfDisposed();
+            Console.WriteLine("Unpacking...");
 
             if (string.IsNullOrWhiteSpace(outputPath))
                 throw new ArgumentException("A pasta de saída é obrigatória.", nameof(outputPath));
@@ -170,6 +171,7 @@ namespace VNTextPatch.Archives
 
             string outputFullPath = Path.GetFullPath(outputPath);
             string? outputDirectory = Path.GetDirectoryName(outputFullPath);
+            Console.WriteLine("Packing...");
             if (!string.IsNullOrEmpty(outputDirectory))
                 Directory.CreateDirectory(outputDirectory);
 
