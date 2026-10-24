@@ -5,7 +5,10 @@ namespace VNTextPatch.Archives
         private static readonly IArchive[] Archives =
         {
             new KirikiriXp3(),
-            new YurisYPF()
+            new YurisYPF(),
+            new GodotPck(),
+            new GodotExe(),
+            new Wolf()
         };
 
         public static IArchive GetArchive(string extension)

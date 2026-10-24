@@ -47,9 +47,10 @@ pack/unpack of some popular engines
 - Kirikiri (xp3)
 - YU-RIS (ypf)
 - Godot
-- Tyrano
+- Wolf
 - Unity
 - Ren'py (rpa)
+- Tyrano
 
 
 ## About VNTextPatch
