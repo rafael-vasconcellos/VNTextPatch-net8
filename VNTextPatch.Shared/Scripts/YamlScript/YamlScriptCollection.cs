@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
+using System.Globalization;
 using System.Text;
 using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
@@ -202,16 +202,45 @@ namespace VNTextPatch.Shared.Scripts
                 root.Add(CreateNameNode(scriptName), entries);
             }
 
+            StringWriter yaml = new StringWriter();
+            EmitterSettings settings = EmitterSettings.Default
+                                                      .WithIndentedSequences()
+                                                      .WithBestWidth(int.MaxValue)
+                                                      .WithNewLine("\n");
+            new YamlStream(new YamlDocument(root)).Save(new Emitter(yaml, settings), false);
+
             string tempPath = Name + ".temp";
-            using (StreamWriter writer = new StreamWriter(tempPath, false, new UTF8Encoding(false)))
-            {
-                EmitterSettings settings = EmitterSettings.Default
-                                                          .WithIndentedSequences()
-                                                          .WithBestWidth(int.MaxValue)
-                                                          .WithNewLine("\n");
-                new YamlStream(new YamlDocument(root)).Save(new Emitter(writer, settings), false);
-            }
+            File.WriteAllText(tempPath, InsertBlankLines(yaml.ToString()), new UTF8Encoding(false));
             File.Move(tempPath, Name, true);
+        }
+
+        private static string InsertBlankLines(string yaml)
+        {
+            // O emitter não tem opção para isso, então é feito no texto. Seguro porque o conteúdo
+            // das mensagens sempre fica indentado a partir da coluna 6: um "  - " na coluna 2 ou
+            // um texto na coluna 0 só podem ser o início de uma fala ou de um script (ou o "...").
+            StringBuilder result = new StringBuilder(yaml.Length + yaml.Length / 8);
+            string? previousLine = null;
+            foreach (string line in yaml.Split('\n'))
+            {
+                // YamlDocument.Save sempre grava o marcador de fim de documento; ele é opcional
+                if (line == "...")
+                    continue;
+
+                if (previousLine != null && previousLine.Length > 0)
+                {
+                    bool startsScript = line.Length > 0 && line[0] != ' ';
+                    bool startsEntry = line.StartsWith("  - ", StringComparison.Ordinal) && previousLine[0] == ' ';
+                    if (startsScript || startsEntry)
+                        result.Append('\n');
+                }
+
+                result.Append(line).Append('\n');
+                previousLine = line;
+            }
+
+            result.Length--;    // o Split deixa um elemento vazio depois do \n final
+            return result.ToString();
         }
 
         private static YamlMappingNode CreateEntryNode(YamlEntry entry)
@@ -267,6 +296,10 @@ namespace VNTextPatch.Shared.Scripts
             // Bloco literal (|) só para texto com várias linhas que o emitter consiga gravar sem perda.
             // Qualquer outro caso fica entre aspas duplas, que preserva o texto exatamente.
             if (!text.Contains('\n') || string.IsNullOrWhiteSpace(text) || char.IsWhiteSpace(text[0]))
+                return false;
+
+            // Terminar em 2+ quebras exigiria "|+", onde as linhas em branco depois do bloco fazem parte do valor
+            if (text.Replace("\r\n", "\n").EndsWith("\n\n", StringComparison.Ordinal))
                 return false;
 
             for (int i = 0; i < text.Length; i++)
