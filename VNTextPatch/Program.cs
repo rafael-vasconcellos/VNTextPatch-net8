@@ -228,6 +228,9 @@ namespace VNTextPatch
                 return new ScriptLocation(collection: collection, scriptName: null);
             }
 
+            string? scriptName = inputLocation.ScriptName != null? 
+                Path.GetFileNameWithoutExtension(inputLocation.ScriptName) : null;
+
             switch (Path.GetExtension(textPath)?.ToLower())
             {
                 case ".json":
@@ -237,9 +240,11 @@ namespace VNTextPatch
                     return ScriptLocation.FromFilePath(textPath);
 
                 case ".xlsx":
-                    var collection = ExcelScriptFactory.Build(textPath);
-                    string? scriptName = inputLocation.ScriptName != null ? Path.GetFileNameWithoutExtension(inputLocation.ScriptName) : null;
+                    var collection = ExcelScriptCollectionFactory.Build(textPath);
                     return new ScriptLocation(collection, scriptName!);
+                case ".yaml" or ".yml":
+                    var yamlCollection = new YamlScriptCollection(textPath);
+                    return new ScriptLocation(yamlCollection, scriptName!);
 
                 default:
                     throw new ArgumentException("Script path must be a .json or .xlsx file or an existing folder");

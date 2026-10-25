@@ -1,0 +1,116 @@
+using System;
+using System.Collections.Generic;
+
+
+namespace VNTextPatch.Shared.Scripts
+{
+    public class YamlScript : IScript
+    {
+        private readonly YamlScriptCollection _collection;
+        private List<YamlEntry> _entries = new List<YamlEntry>();
+
+        public YamlScript(YamlScriptCollection collection)
+        {
+            _collection = collection;
+        }
+
+        public string? Extension
+        {
+            get { return null; }
+        }
+
+        public void Load(ScriptLocation location)
+        {
+            if (location.Collection != _collection)
+                throw new InvalidOperationException();
+
+            _entries = _collection.GetEntries(location.ScriptName);
+        }
+
+        public IEnumerable<ScriptString> GetStrings()
+        {
+            foreach (YamlEntry entry in _entries)
+            {
+                if (!string.IsNullOrEmpty(entry.Name))
+                {
+                    yield return new ScriptString(entry.Name, ScriptStringType.CharacterName);
+                }
+                else if (entry.Names != null)
+                {
+                    foreach (string name in entry.Names)
+                    {
+                        yield return new ScriptString(name, ScriptStringType.CharacterName);
+                    }
+                }
+
+                // Mesma normalização do ExcelScript: quebras de linha sempre como \r\n
+                string text = (entry.Message ?? string.Empty).Replace("\r\n", "\n").Replace("\n", "\r\n");
+                yield return new ScriptString(text, ScriptStringType.Message);
+            }
+        }
+
+        public void WritePatched(IEnumerable<ScriptString> strings, ScriptLocation location)
+        {
+            if (location.Collection != _collection)
+                throw new InvalidOperationException();
+
+            List<YamlEntry> entries = new List<YamlEntry>();
+            YamlEntry? pendingEntry = null;
+            foreach (ScriptString str in strings)
+            {
+                if (str.Type == ScriptStringType.CharacterName)
+                {
+                    if (pendingEntry == null)
+                    {
+                        pendingEntry = new YamlEntry { Name = str.Text };
+                    }
+                    else
+                    {
+                        if (pendingEntry.Names == null)
+                        {
+                            pendingEntry.Names = new List<string> { pendingEntry.Name! };
+                            pendingEntry.Name = null;
+                        }
+                        pendingEntry.Names.Add(str.Text);
+                    }
+                }
+                else
+                {
+                    if (pendingEntry != null)
+                    {
+                        pendingEntry.Message = str.Text;
+                        entries.Add(pendingEntry);
+                        pendingEntry = null;
+                    }
+                    else
+                    {
+                        entries.Add(new YamlEntry { Message = str.Text });
+                    }
+                }
+            }
+
+            _collection.SetEntries(location.ScriptName, entries);
+        }
+    }
+
+    internal class YamlEntry
+    {
+        public string? Name
+        {
+            get;
+            set;
+        }
+
+        public List<string>? Names
+        {
+            get;
+            set;
+        }
+
+        public string? Message
+        {
+            get;
+            set;
+        }
+    }
+}

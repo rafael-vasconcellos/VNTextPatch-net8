@@ -7,7 +7,7 @@ namespace VNTextPatch.Shared.Scripts
         void CleanupEmptyExtraction();
     }
 
-    public class ExcelScriptFactory
+    public class ExcelScriptCollectionFactory
     {
         public static IScriptDisposableCollection Build(string filePath)
         {
