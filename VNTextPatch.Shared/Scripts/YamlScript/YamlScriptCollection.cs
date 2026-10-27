@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text;
 using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
+using YamlDotNet.Core.Events;
 
 
 namespace VNTextPatch.Shared.Scripts
@@ -233,13 +234,13 @@ namespace VNTextPatch.Shared.Scripts
             new YamlStream(new YamlDocument(root))
                 .Save(new Emitter(yamlStringWriter, settings), false);
 
-            string tempPath = Name + ".temp";
+            //string tempPath = Name + ".temp";
             File.WriteAllText(
-                tempPath, 
-                InsertBlankLines(yamlStringWriter.ToString()), new UTF8Encoding(false)
-                // yamlStringWriter.ToString(), new UTF8Encoding(false)
+                Name,
+                //InsertBlankLines(yamlStringWriter.ToString()), new UTF8Encoding(false)
+                yamlStringWriter.ToString(), new UTF8Encoding(false)
             );
-            File.Move(tempPath, Name, true);
+            //File.Move(tempPath, Name, true);
         }
 
         private static string InsertBlankLines(string yaml)
@@ -276,6 +277,10 @@ namespace VNTextPatch.Shared.Scripts
             YamlMappingNode node = new YamlMappingNode();
             //if (entry.Index is int index) node.Add("index", CreateIndexNode(index));
 
+            // Quando há um nome de personagem, usa o estilo flow para manter
+            // name e message na mesma linha: { name: Heitor, message: "Olá!" }.
+            bool useFlowStyle = !string.IsNullOrEmpty(entry.Name) && entry.Names == null;
+
             if (entry.Names != null)
             {
                 YamlSequenceNode names = new YamlSequenceNode();
@@ -290,7 +295,10 @@ namespace VNTextPatch.Shared.Scripts
                 node.Add("name", CreateNameNode(entry.Name));
             }
 
-            node.Add("message", CreateMessageNode(entry.Message ?? string.Empty));
+            // Escalares em bloco (|) não podem ser usados dentro de mapas flow.
+            // Nesse caso, mensagens multilinha são serializadas com aspas e escapes.
+            node.Add("message", CreateMessageNode(entry.Message ?? string.Empty, useFlowStyle));
+            if (useFlowStyle) node.Style = MappingStyle.Flow;
             return node;
         }
 
@@ -304,9 +312,9 @@ namespace VNTextPatch.Shared.Scripts
                    };
         }
 
-        private static YamlScalarNode CreateMessageNode(string text)
+        private static YamlScalarNode CreateMessageNode(string text, bool forceQuotedStyle = false)
         {
-            if (CanUseLiteralStyle(text))
+            if (!forceQuotedStyle && CanUseLiteralStyle(text))
             {
                 return new YamlScalarNode(text.Replace("\r\n", "\n"))
                        {
