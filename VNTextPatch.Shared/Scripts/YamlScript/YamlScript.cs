@@ -95,7 +95,11 @@ namespace VNTextPatch.Shared.Scripts
                 }
             }
 
-            _collection.SetEntries(location.ScriptName, entries);
+            var existingFile = YamlScriptCollection.Load(location.ToFilePath())?.TryGetEntries(location.ScriptName);
+            var newEntries = existingFile != null?
+                entries.Select((entry, i) => i<existingFile.Count? existingFile[i] : entry).ToList()
+                : entries;
+            _collection.SetEntries(location.ScriptName, newEntries);
         }
     }
 

@@ -25,10 +25,11 @@ namespace VNTextPatch.Shared
 
         public string ToFilePath()
         {
-            if (!(Collection is FolderScriptCollection folder))
-                throw new InvalidOperationException();
+            if (Collection is FolderScriptCollection folder) 
+                return Path.Combine(folder.FolderPath, ScriptName);
 
-            return Path.Combine(folder.FolderPath, ScriptName);
+            //throw new InvalidOperationException();
+            return Collection.Name;
         }
 
         public override string ToString()

@@ -26,6 +26,13 @@ namespace VNTextPatch.Shared.Scripts
             _script = new YamlScript(this);
         }
 
+        public static YamlScriptCollection? Load(string filePath)
+        {
+            if (File.Exists(filePath)) 
+                return new YamlScriptCollection(filePath);
+            return null;
+        }
+
         public string Name
         {
             get;
@@ -81,7 +88,21 @@ namespace VNTextPatch.Shared.Scripts
 
         internal List<YamlEntry> GetEntries(string scriptName)
         {
-            return _scripts[scriptName];
+            if (!string.IsNullOrEmpty(scriptName) && _scripts.ContainsKey(scriptName))
+                return _scripts[scriptName];
+            
+            throw new Exception($"{scriptName} não foi encontrado.");
+        }
+
+        internal List<YamlEntry>? TryGetEntries(string scriptName)
+        {
+            try
+            {
+                return GetEntries(scriptName);
+            } catch
+            {
+                return null;
+            }
         }
 
         internal void SetEntries(string scriptName, List<YamlEntry> entries)
@@ -216,7 +237,7 @@ namespace VNTextPatch.Shared.Scripts
             File.WriteAllText(
                 tempPath, 
                 InsertBlankLines(yamlStringWriter.ToString()), new UTF8Encoding(false)
-                // yamlStringWriter.ToString()
+                // yamlStringWriter.ToString(), new UTF8Encoding(false)
             );
             File.Move(tempPath, Name, true);
         }
