@@ -56,6 +56,7 @@ namespace VNTextPatch.Shared.Scripts
 
             List<YamlEntry> entries = new List<YamlEntry>();
             YamlEntry? pendingEntry = null;
+            int index = 1;
             foreach (ScriptString str in strings)
             {
                 if (str.Type == ScriptStringType.CharacterName)
@@ -79,12 +80,17 @@ namespace VNTextPatch.Shared.Scripts
                     if (pendingEntry != null)
                     {
                         pendingEntry.Message = str.Text;
+                        pendingEntry.Index = index++;
                         entries.Add(pendingEntry);
                         pendingEntry = null;
                     }
                     else
                     {
-                        entries.Add(new YamlEntry { Message = str.Text });
+                        YamlEntry yamlEntry = new YamlEntry { 
+                            Message = str.Text,
+                            Index = index++
+                        };
+                        entries.Add(yamlEntry);
                     }
                 }
             }
@@ -95,6 +101,11 @@ namespace VNTextPatch.Shared.Scripts
 
     internal class YamlEntry
     {
+        public int? Index
+        {
+            get;
+            set;
+        }
         public string? Name
         {
             get;

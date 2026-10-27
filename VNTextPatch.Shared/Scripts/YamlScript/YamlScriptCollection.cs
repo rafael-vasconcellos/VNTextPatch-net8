@@ -164,6 +164,8 @@ namespace VNTextPatch.Shared.Scripts
                     case "message":
                         entry.Message = ReadText(field.Value);
                         break;
+                    
+                    case "index": break;
 
                     default:
                         throw Error(field.Key, "campo desconhecido '" + key + "'");
@@ -246,6 +248,7 @@ namespace VNTextPatch.Shared.Scripts
         private static YamlMappingNode CreateEntryNode(YamlEntry entry)
         {
             YamlMappingNode node = new YamlMappingNode();
+            //if (entry.Index is int index) node.Add("index", CreateIndexNode(index));
 
             if (entry.Names != null)
             {
@@ -289,6 +292,15 @@ namespace VNTextPatch.Shared.Scripts
                    {
                        Style = ScalarStyle.DoubleQuoted
                    };
+        }
+
+        private static YamlScalarNode CreateIndexNode(int index)
+        {
+            // Salva o número sem aspas
+            return new YamlScalarNode(index.ToString())
+            {
+                Style = ScalarStyle.Plain
+            };
         }
 
         private static bool CanUseLiteralStyle(string text)
