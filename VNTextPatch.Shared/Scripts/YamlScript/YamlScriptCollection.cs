@@ -204,15 +204,20 @@ namespace VNTextPatch.Shared.Scripts
                 root.Add(CreateNameNode(scriptName), entries);
             }
 
-            StringWriter yaml = new StringWriter();
+            StringWriter yamlStringWriter = new StringWriter();
             EmitterSettings settings = EmitterSettings.Default
                                                       .WithIndentedSequences()
                                                       .WithBestWidth(int.MaxValue)
                                                       .WithNewLine("\n");
-            new YamlStream(new YamlDocument(root)).Save(new Emitter(yaml, settings), false);
+            new YamlStream(new YamlDocument(root))
+                .Save(new Emitter(yamlStringWriter, settings), false);
 
             string tempPath = Name + ".temp";
-            File.WriteAllText(tempPath, InsertBlankLines(yaml.ToString()), new UTF8Encoding(false));
+            File.WriteAllText(
+                tempPath, 
+                InsertBlankLines(yamlStringWriter.ToString()), new UTF8Encoding(false)
+                // yamlStringWriter.ToString()
+            );
             File.Move(tempPath, Name, true);
         }
 
