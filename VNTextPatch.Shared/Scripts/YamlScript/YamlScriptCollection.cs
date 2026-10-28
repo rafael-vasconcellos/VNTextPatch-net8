@@ -194,8 +194,7 @@ namespace VNTextPatch.Shared.Scripts
                 }
             }
 
-            if (entry.Message == null)
-                throw Error(map, "falta o campo 'message'");
+            if (entry.Message == null) throw Error(map, "falta o campo 'message'");
 
             return entry;
         }

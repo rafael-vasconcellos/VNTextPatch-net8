@@ -16,9 +16,10 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 + enhance extraction statistics logs
 + removed the dependency on `names.xml` and `template.xlsx`
 + add `-h` and `--help` options
-+ add JsonlScript for handling JSON Lines format
++ add `JsonlScript` for handling JSON Lines format
 + add output format option and improve usage instructions
 + flexibilize the usage of `settings.xml`
++ add `YamlScript` for handling YAML format. you can generate a single YAML file containing all of the game dialogue, so you can throw it in the AI chatbot of your preference.
 
 #### replaced libs
 + System.Configuration -> Microsoft.Extensions.Configuration  
