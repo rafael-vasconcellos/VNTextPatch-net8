@@ -334,6 +334,10 @@ namespace VNTextPatch
             Console.WriteLine($"{assemblyName} extractlocal <source> <script.xlsx>");
             Console.WriteLine($"{assemblyName} insertlocal <source> <script.xlsx> <patched>\n");
 
+            Console.WriteLine($"YAML/YML:\n");
+            Console.WriteLine($"{assemblyName} extractlocal <source> <script.yaml>");
+            Console.WriteLine($"{assemblyName} insertlocal <source> <script.yaml> <patched>\n");
+
             Console.WriteLine($"Options:");
             Console.WriteLine($"    -h, --help    Displays this screen");
             Console.WriteLine($"    --output=<value>    Output format of the script text files. JSON or JSONL. Default is JSONL");

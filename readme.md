@@ -19,6 +19,7 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 + add `JsonlScript` for handling JSON Lines format
 + add output format option and improve usage instructions
 + flexibilize the usage of `settings.xml`
++ auto generate `settings.xml` after `extractlocal`
 + add `YamlScript` for handling YAML format. you can generate a single YAML file containing all of the game dialogue, so you can throw it in the AI chatbot of your preference.
 
 #### replaced libs
@@ -76,6 +77,11 @@ Excel:
 
 VNTextPatch extractlocal <source> <script.xlsx>
 VNTextPatch insertlocal <source> <script.xlsx> <patched>
+
+YAML/YML:
+
+VNTextPatch extractlocal <source> <script.yaml>
+VNTextPatch insertlocal <source> <script.yaml> <patched>
 
 Options:
     -h, --help    Displays this screen
