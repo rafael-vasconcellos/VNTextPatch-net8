@@ -42,7 +42,7 @@ namespace VNTextPatch.Shared
 
             Console.WriteLine(inputScriptName);
             _textScript.Load(new ScriptLocation(_textCollection, textScriptName));
-            IEnumerable<ScriptString> strings = _textScript.GetStrings();
+            List<ScriptString> strings = _textScript.GetStrings().ToList();
 
             _inputOutputScript.Load(new ScriptLocation(_inputCollection, inputScriptName));
 
