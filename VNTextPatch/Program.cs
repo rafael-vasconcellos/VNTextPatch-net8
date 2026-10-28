@@ -81,6 +81,7 @@ namespace VNTextPatch
                     extracter.ExtractAll();
 
                 PrintExtractionStatistics(extracter.TotalLines, extracter.TotalCharacters);
+                AppSettings.CreateFile(Path.GetDirectoryName(textPath)!);
             }
             finally
             {

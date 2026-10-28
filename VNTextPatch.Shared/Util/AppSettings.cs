@@ -2,11 +2,12 @@
 using System.IO;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
+using System.Xml.Linq;
 
 
 namespace VNTextPatch.Shared.Util
 {
-    internal static class AppSettings
+    public static class AppSettings
     {
         public static readonly IConfiguration Configuration = Build();
 
@@ -54,10 +55,59 @@ namespace VNTextPatch.Shared.Util
         {
             return !string.IsNullOrEmpty(GetFilePath());
         }
-
-        public static void CreateFile(string filePath)
+        
+        public static void CreateFile(string dirName)
         {
-            //
+            if (Exists()) return;
+            var document = new XDocument(
+                new XDeclaration("1.0", "utf-8", null),
+                new XElement("settings",
+                    new XComment(" When using an API key to access Google spreadsheets "),
+                    new XElement("GoogleApiKey"),
+
+                    new XComment(
+                        " Instead of using an API key, you can also use a service account.\n" +
+                        "       This way, you don't have to make your spreadsheet public. "
+                    ),
+                    new XComment(
+                        " To use a service account, download its private key\n" +
+                        "       and store it in a file called \"google-service-account.json\". "
+                    ),
+
+                    new XElement(
+                        "MonospaceCharactersPerLine",
+                        DefaultAppSettings.MonospaceCharactersPerLine
+                    ),
+
+                    new XElement(
+                        "ProportionalFontName",
+                        DefaultAppSettings.FontName
+                    ),
+                    new XElement(
+                        "ProportionalFontSize",
+                        DefaultAppSettings.FontSize
+                    ),
+                    new XElement(
+                        "ProportionalFontBold",
+                        DefaultAppSettings.FontBold.ToString().ToLowerInvariant()
+                    ),
+                    new XElement(
+                        "ProportionalLineWidth",
+                        DefaultAppSettings.ProportionalLineWidth
+                    ),
+                    new XElement(
+                        "SecondaryProportionalLineWidth",
+                        DefaultAppSettings.SecondaryProportionalLineWidth
+                    )
+                )
+            );
+
+            var directory = Path.GetFullPath(dirName);
+            if (directory is not null)
+            {
+                Directory.CreateDirectory(directory);
+                document.Save(Path.Combine(directory, "settings.xml"));
+            }
         }
 
     }
