@@ -8,9 +8,11 @@ namespace VNTextPatch.Shared
     public class Extracter
     {
         private readonly IScriptCollection _inputCollection;
-        private readonly IScript _inputScript;
-
         private readonly IScriptCollection _textCollection;
+
+        // on extraction, the input script provides the strings with `GetStrings`, that's why it needs
+        // to be reloaded at each iteration
+        private readonly IScript _inputScript;
         private readonly IScript _textScript;
 
         public Extracter(IScriptCollection inputCollection, IScriptCollection textCollection)

@@ -94,6 +94,14 @@ namespace VNTextPatch.Shared.Scripts
             return StringUtil.NullIf(value, string.Empty);
         }
 
+        private static string GetScriptRange(Sheet sheet)
+        {
+            GridProperties properties = sheet.Properties.GridProperties;
+            int maxColumnIdx = Enum.GetValues<ExcelColumn>().Max(c => (int)c);
+            char maxColumnName = (char)('A' + maxColumnIdx - 1);
+            return $"{sheet.Properties.Title}!A1:{maxColumnName}{properties.RowCount}";
+        }
+
         public int Translated
         {
             get;
@@ -131,12 +139,5 @@ namespace VNTextPatch.Shared.Scripts
             throw new NotImplementedException();
         }
 
-        private static string GetScriptRange(Sheet sheet)
-        {
-            GridProperties properties = sheet.Properties.GridProperties;
-            int maxColumnIdx = Enum.GetValues<ExcelColumn>().Max(c => (int)c);
-            char maxColumnName = (char)('A' + maxColumnIdx - 1);
-            return $"{sheet.Properties.Title}!A1:{maxColumnName}{properties.RowCount}";
-        }
     }
 }

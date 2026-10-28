@@ -18,6 +18,7 @@ using VNTextPatch.Shared.Scripts.SystemNnn;
 using VNTextPatch.Shared.Scripts.TmrHiroAdvSystem;
 using VNTextPatch.Shared.Scripts.Yuris;
 
+
 namespace VNTextPatch.Shared.Scripts
 {
     public class FolderScriptCollection : IScriptCollection
@@ -72,26 +73,6 @@ namespace VNTextPatch.Shared.Scripts
             FolderPath = folderPath;
             Extension = extension ?? string.Empty;
             Format = format;
-        }
-
-        public string Name
-        {
-            get { return FolderPath; }
-        }
-
-        public string FolderPath
-        {
-            get;
-        }
-
-        public string Extension
-        {
-            get;
-        }
-
-        public string? Format
-        {
-            get;
         }
 
         public IScript GetTemporaryScript()
@@ -154,5 +135,26 @@ namespace VNTextPatch.Shared.Scripts
         {
             return FolderPath;
         }
+
+        public string Name
+        {
+            get { return FolderPath; }
+        }
+
+        public string FolderPath
+        {
+            get;
+        }
+
+        public string Extension
+        {
+            get;
+        }
+
+        public string? Format
+        {
+            get;
+        }
+
     }
 }
