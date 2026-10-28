@@ -4,14 +4,20 @@ using System.Collections.Generic;
 
 namespace VNTextPatch.Shared.Scripts
 {
-    public class YamlScript : IScript
+    public class YamlReadOnlyScript : IReadOnlyScript
     {
-        private readonly YamlScriptCollection _collection;
-        private List<YamlEntry> _entries = new List<YamlEntry>();
+        protected readonly YamlScriptCollection _collection;
+        private protected List<YamlEntry> _entries = new List<YamlEntry>();
 
-        public YamlScript(YamlScriptCollection collection)
+        public YamlReadOnlyScript(YamlScriptCollection collection)
         {
             _collection = collection;
+        }
+
+        public YamlReadOnlyScript(ScriptLocation location)
+        {
+            _collection = (YamlScriptCollection)location.Collection;
+            _entries = _collection.GetEntries(location.ScriptName);
         }
 
         public string? Extension
@@ -19,12 +25,13 @@ namespace VNTextPatch.Shared.Scripts
             get { return null; }
         }
 
-        public void Load(ScriptLocation location)
+        public virtual void Load(ScriptLocation location)
         {
-            if (location.Collection != _collection)
+            if (location.Collection is not YamlScriptCollection collection)
                 throw new InvalidOperationException();
 
-            _entries = _collection.GetEntries(location.ScriptName);
+            List<YamlEntry> entries = collection.GetEntries(location.ScriptName);
+            _entries = entries;
         }
 
         public IEnumerable<ScriptString> GetStrings()
@@ -47,6 +54,19 @@ namespace VNTextPatch.Shared.Scripts
                 string text = (entry.Message ?? string.Empty).Replace("\r\n", "\n").Replace("\n", "\r\n");
                 yield return new ScriptString(text, ScriptStringType.Message);
             }
+        }
+    }
+
+    public class YamlScript : YamlReadOnlyScript, IScript
+    {
+        public YamlScript(YamlScriptCollection collection) : base(collection) {}
+
+        public override void Load(ScriptLocation location)
+        {
+            if (location.Collection != _collection)
+                throw new InvalidOperationException();
+
+            _entries = _collection.GetEntries(location.ScriptName);
         }
 
         public void WritePatched(IEnumerable<ScriptString> strings, ScriptLocation location)

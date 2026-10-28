@@ -39,6 +39,11 @@ namespace VNTextPatch.Shared.Scripts
             get;
         }
 
+        public override string ToString()
+        {
+            return Name;
+        }
+
         public IScript GetTemporaryScript()
         {
             return _script;
@@ -47,6 +52,12 @@ namespace VNTextPatch.Shared.Scripts
         public IEnumerable<string> Scripts
         {
             get { return _scriptNames.ToArray(); }
+        }
+
+        public List<ScriptString> GetStrings(string scriptName)
+        {
+            var script = new YamlReadOnlyScript(new ScriptLocation(this, scriptName));
+            return script.GetStrings().ToList();
         }
 
         public bool Exists(string scriptName)
@@ -62,11 +73,6 @@ namespace VNTextPatch.Shared.Scripts
         public void Add(string scriptName, ScriptLocation copyFrom)
         {
             throw new NotImplementedException();
-        }
-
-        public override string ToString()
-        {
-            return Name;
         }
 
         public void Dispose()

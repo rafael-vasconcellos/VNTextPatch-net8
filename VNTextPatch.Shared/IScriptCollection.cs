@@ -6,13 +6,17 @@ namespace VNTextPatch.Shared
     {
         string Name { get; }
 
-        IScript GetTemporaryScript();
-
         IEnumerable<string> Scripts { get; }
 
+        IScript GetTemporaryScript();
         bool Exists(string scriptName);
-
         void Add(string scriptName);
         void Add(string scriptName, ScriptLocation copyFrom);
+        List<ScriptString> GetStrings(string scriptName)
+        {
+            IScript script = GetTemporaryScript();
+            script.Load(new ScriptLocation(this, scriptName));
+            return script.GetStrings().ToList();
+        }
     }
 }
