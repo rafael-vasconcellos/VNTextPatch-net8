@@ -149,8 +149,7 @@ namespace VNTextPatch
                     File.WriteAllBytes(sjisExtPath, sjisExtContent);
                 }
 
-                if (inserter.Statistics != null)
-                    PrintInsertionStatistics(inserter.Statistics);
+                inserter.PrintStatistics();
             }
             finally
             {
@@ -209,8 +208,7 @@ namespace VNTextPatch
             if (sjisExtContent.Length > 0)
                 File.WriteAllBytes(sjisExtPath, sjisExtContent);
 
-            if (inserter.Statistics != null)
-                PrintInsertionStatistics(inserter.Statistics);
+            inserter.PrintStatistics();
         }
 
         private static ScriptLocation GetLocalTextScriptLocation(ScriptLocation inputLocation, string textPath)
@@ -305,14 +303,6 @@ namespace VNTextPatch
         {
             Console.WriteLine($"Total lines: {lines}");
             Console.WriteLine($"Total characters: {characters}");
-        }
-
-        private static void PrintInsertionStatistics(ILineStatistics statistics)
-        {
-            Console.WriteLine($"Total lines: {statistics.Total}");
-            Console.WriteLine($"Translated:  {statistics.Translated,-10} ({(float)statistics.Translated / statistics.Total:P2})");
-            Console.WriteLine($"Checked:     {statistics.Checked,-10} ({(float)statistics.Checked / statistics.Total:P2})");
-            Console.WriteLine($"Edited:      {statistics.Edited,-10} ({(float)statistics.Edited / statistics.Total:P2})");
         }
 
         private static void PrintUsage()

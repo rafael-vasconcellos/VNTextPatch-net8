@@ -8,7 +8,7 @@ using VNTextPatch.Shared.Util;
 
 namespace VNTextPatch.Shared.Scripts
 {
-    public class GoogleDocsScript : IScript, ILineStatistics
+    public class GoogleDocsScript : IScript, ISheetStatistics
     {
         private const string EmptyTextMarker = "(empty)";
 

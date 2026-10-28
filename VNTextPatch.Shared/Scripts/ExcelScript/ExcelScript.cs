@@ -7,7 +7,7 @@ using VNTextPatch.Shared.Util;
 
 namespace VNTextPatch.Shared.Scripts
 {
-    public class ExcelScript : IScript, ILineStatistics
+    public class ExcelScript : IScript, ISheetStatistics
     {
         private const string EmptyTextMarker = "(empty)";
 

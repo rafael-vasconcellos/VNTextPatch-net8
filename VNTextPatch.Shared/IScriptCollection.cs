@@ -12,11 +12,15 @@ namespace VNTextPatch.Shared
         bool Exists(string scriptName);
         void Add(string scriptName);
         void Add(string scriptName, ScriptLocation copyFrom);
-        List<ScriptString> GetStrings(string scriptName)
+        IEnumerable<ScriptString> GetStrings(string scriptName)
         {
             IScript script = GetTemporaryScript();
             script.Load(new ScriptLocation(this, scriptName));
-            return script.GetStrings().ToList();
+            return script.GetStrings();
+        }
+        List<ScriptString> GetMessageStrings(string scriptName)
+        {
+            return GetStrings(scriptName).Where(s => s.Type == ScriptStringType.Message).ToList();
         }
     }
 }

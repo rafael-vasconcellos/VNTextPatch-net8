@@ -1,11 +1,11 @@
 ﻿namespace VNTextPatch.Shared
 {
-    public interface ILineStatistics
+    public interface ISheetStatistics
     {
         int Translated { get; }
+        int Total { get; set; }
         int Checked { get; }
         int Edited { get; }
-        int Total { get; set; }
 
         void Reset();
     }
