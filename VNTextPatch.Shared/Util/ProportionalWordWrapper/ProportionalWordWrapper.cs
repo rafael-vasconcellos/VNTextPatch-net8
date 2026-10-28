@@ -14,12 +14,14 @@ namespace VNTextPatch.Shared.Util
         {
             try
             {
-                var name = AppSettings.Configuration[fontName] ?? "Franklin Gothic Book";
-                var size = GetInt(fontSize, 40);
-                var bold = GetBool(fontBold, false);
+                var name = AppSettings.Configuration[fontName] ?? DefaultAppSettings.FontName;
+                var size = GetInt(fontSize, DefaultAppSettings.FontSize);
+                var bold = GetBool(fontBold, DefaultAppSettings.FontBold);
                 var width = GetInt(
                     lineWidth,
-                    lineWidth.Contains("Secondary") ? 670 : 1000
+                    lineWidth.Contains("Secondary")? 
+                        DefaultAppSettings.SecondaryProportionalLineWidth
+                         : DefaultAppSettings.ProportionalLineWidth
                 );
 
 #if WINDOWS

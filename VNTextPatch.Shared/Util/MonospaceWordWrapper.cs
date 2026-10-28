@@ -12,7 +12,7 @@ namespace VNTextPatch.Shared.Util
 
         [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "T is always an int; primitive type conversion, without reflection on members.")]
         private MonospaceWordWrapper()
-            : this(AppSettings.Configuration.GetValue<int>("MonospaceCharactersPerLine", 60))
+            : this(AppSettings.Configuration.GetValue<int>("MonospaceCharactersPerLine", DefaultAppSettings.MonospaceCharactersPerLine))
         {
         }
 

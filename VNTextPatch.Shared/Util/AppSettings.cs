@@ -32,20 +32,43 @@ namespace VNTextPatch.Shared.Util
 
         public static string BasePath()
         {
-            string currentDirectory = Directory.GetCurrentDirectory();
+            return GetFilePath() ?? Directory.GetCurrentDirectory();
+        }
 
+        public static string? GetFilePath()
+        {
             try
             {
                 return Directory
-                    .EnumerateFiles(currentDirectory, "settings.xml", SearchOption.AllDirectories)
+                    .EnumerateFiles(Directory.GetCurrentDirectory(), "settings.xml", SearchOption.AllDirectories)
                     .Select(Path.GetDirectoryName)
-                    .FirstOrDefault() ?? currentDirectory;
+                    .FirstOrDefault() ?? null;
 
             } catch
             {
-                return currentDirectory;
+                return null;
             }
         }
 
+        public static bool Exists()
+        {
+            return !string.IsNullOrEmpty(GetFilePath());
+        }
+
+        public static void CreateFile(string filePath)
+        {
+            //
+        }
+
+    }
+
+    internal class DefaultAppSettings
+    {
+        public static string FontName = "Franklin Gothic Book";
+        public static int FontSize = 40;
+        public static bool FontBold = false;
+        public static int ProportionalLineWidth = 1000;
+        public static int SecondaryProportionalLineWidth = 670;
+        public static int MonospaceCharactersPerLine = 60;
     }
 }
