@@ -11,8 +11,8 @@ namespace VNTextPatch.Shared
         private readonly IScriptCollection _textCollection;
         private readonly IScriptCollection _outputCollection;
 
-        private readonly IScript _inputOutputScript;
         private readonly IScript _textScript;
+        private readonly IScript _inputOutputScript; // input and output use the same script (ybn, ks, etc.)
 
         public Inserter(IScriptCollection inputCollection, IScriptCollection textCollection, IScriptCollection outputCollection)
         {
@@ -40,6 +40,7 @@ namespace VNTextPatch.Shared
             if (!_textCollection.Exists(textScriptName))
                 throw new FileNotFoundException($"{textScriptName} does not exist in {_textCollection.Name}");
 
+            Console.WriteLine(inputScriptName);
             _textScript.Load(new ScriptLocation(_textCollection, textScriptName));
             IEnumerable<ScriptString> strings = _textScript.GetStrings();
 
@@ -53,8 +54,6 @@ namespace VNTextPatch.Shared
         {
             foreach (string inputScriptName in _inputCollection.Scripts)
             {
-                Console.WriteLine(inputScriptName);
-
                 string textScriptName;
                 if (!string.IsNullOrEmpty(_inputOutputScript.Extension))
                     textScriptName = Path.ChangeExtension(inputScriptName, _textScript.Extension);
