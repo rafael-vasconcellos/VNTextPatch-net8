@@ -8,7 +8,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
     /// Encapsula um <see cref="StringBuilder"/> com operações de alto nível
     /// para montar documentos Markdown.
     /// </summary>
-    internal class MarkdownBuilder
+    public class MarkdownBuilder
     {
         private readonly StringBuilder _sb = new();
 
@@ -105,9 +105,9 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
     /// <see cref="MarkdownBuilder"/> com as seções específicas do modelo de
     /// Markdown usado para tradução de visual novels (personagens e notas).
     /// </summary>
-    internal sealed class VndbMarkdownBuilder : MarkdownBuilder
+    public sealed class VndbMarkdownBuilder : MarkdownBuilder
     {
-        public void AppendCharacter(
+        internal void AppendCharacter(
             CharacterDto character,
             string vnId)
         {

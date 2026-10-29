@@ -41,6 +41,17 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             string vnId,
             CancellationToken cancellationToken = default)
         {
+            var task = await GenerateBuilderAsync(vnId, cancellationToken);
+            return task.ToString();
+        }
+
+        /// <summary>
+        /// Consulta a visual novel e seus personagens e retorna o Markdown Builder.
+        /// </summary>
+        public async Task<VndbMarkdownBuilder> GenerateBuilderAsync(
+            string vnId,
+            CancellationToken cancellationToken = default)
+        {
             ValidateVnId(vnId);
 
             var vn = await GetVisualNovelAsync(vnId, cancellationToken);
@@ -50,7 +61,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
                 cancellationToken
             );
 
-            return BuildMarkdown(vn, characters, vnId).ToString();
+            return BuildMarkdown(vn, characters, vnId);
         }
 
         /// <summary>
@@ -63,9 +74,17 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-
             var markdown = await GenerateAsync(vnId, cancellationToken);
+            await CreateFileAsync(markdown, outputPath, cancellationToken);
+        }
 
+        public static async Task CreateFileAsync(
+            string markdown,
+            string outputPath,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+            ArgumentNullException.ThrowIfNull(markdown);
             var fullPath = Path.GetFullPath(outputPath);
             var directory = Path.GetDirectoryName(fullPath);
 
