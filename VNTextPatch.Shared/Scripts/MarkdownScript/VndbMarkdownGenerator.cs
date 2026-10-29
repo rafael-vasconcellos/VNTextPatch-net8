@@ -1,0 +1,427 @@
+using System.Globalization;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+
+
+namespace VNTextPatch.Shared.Scripts.MarkdownScript
+{
+    public sealed class VndbMarkdownGenerator : IDisposable
+    {
+        private const string BaseUrl = "https://api.vndb.org/kana";
+
+        private readonly HttpClient _httpClient;
+        private readonly bool _ownsHttpClient;
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        public VndbMarkdownGenerator(HttpClient? httpClient = null)
+        {
+            _ownsHttpClient = httpClient is null;
+
+            _httpClient = httpClient ?? new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            if (_ownsHttpClient)
+            {
+                _httpClient.DefaultRequestHeaders.Accept.Add(
+                    new MediaTypeWithQualityHeaderValue("application/json")
+                );
+            }
+        }
+
+        /// <summary>
+        /// Consulta a visual novel e seus personagens e retorna o Markdown.
+        /// </summary>
+        public async Task<string> GenerateAsync(
+            string vnId,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateVnId(vnId);
+
+            var vn = await GetVisualNovelAsync(vnId, cancellationToken);
+
+            var characters = await GetCharactersAsync(
+                vnId,
+                cancellationToken
+            );
+
+            return BuildMarkdown(vn, characters, vnId);
+        }
+
+        /// <summary>
+        /// Gera o Markdown e salva o resultado em um arquivo.
+        /// Cria o diretório de destino caso ele ainda não exista.
+        /// </summary>
+        public async Task GenerateToFileAsync(
+            string vnId,
+            string outputPath,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+
+            var markdown = await GenerateAsync(vnId, cancellationToken);
+
+            var fullPath = Path.GetFullPath(outputPath);
+            var directory = Path.GetDirectoryName(fullPath);
+
+            if (directory is not null)
+                Directory.CreateDirectory(directory);
+
+            await File.WriteAllTextAsync(
+                fullPath,
+                markdown,
+                new UTF8Encoding(false),
+                cancellationToken
+            );
+        }
+
+        // ========================================================
+        // VNDB API
+        // ========================================================
+
+        private async Task<VisualNovelDto> GetVisualNovelAsync(
+            string vnId,
+            CancellationToken cancellationToken)
+        {
+            var request = new
+            {
+                filters = new object[]
+                {
+                    "id", "=", vnId
+                },
+                fields =
+                    "id, title, description, tags.name, tags.rating, " +
+                    "image.url, developers.name, rating, average",
+                results = 1,
+                compact_filters = false,
+                normalized_filters = false
+            };
+
+            var response = await PostAsync<VisualNovelDto>(
+                "vn",
+                request,
+                cancellationToken
+            );
+
+            return response.Results.FirstOrDefault()
+                ?? throw new InvalidOperationException(
+                    $"Visual novel '{vnId}' não encontrada."
+                );
+        }
+
+        private async Task<List<CharacterDto>> GetCharactersAsync(
+            string vnId,
+            CancellationToken cancellationToken)
+        {
+            const int pageSize = 100;
+
+            var characters = new List<CharacterDto>();
+
+            for (var page = 1; ; page++)
+            {
+                var request = new
+                {
+                    filters = new object[]
+                    {
+                        "vn", "=", new object[]
+                        {
+                            "id", "=", vnId
+                        }
+                    },
+                    fields =
+                        "id, name, original, aliases, description, image.url, " +
+                        "sex, gender, vns.id, vns.role, vns.title",
+                    results = pageSize,
+                    page,
+                    compact_filters = false,
+                    normalized_filters = false
+                };
+
+                var response = await PostAsync<CharacterDto>(
+                    "character",
+                    request,
+                    cancellationToken
+                );
+
+                characters.AddRange(response.Results);
+
+                if (!response.More || response.Results.Count == 0)
+                    break;
+            }
+
+            // Remove possíveis duplicatas pelo ID do personagem.
+            return characters
+                .GroupBy(
+                    c => c.Id ?? c.Name ?? Guid.NewGuid().ToString(),
+                    StringComparer.OrdinalIgnoreCase
+                )
+                .Select(g => g.First())
+                .ToList();
+        }
+
+        private async Task<ApiResponse<T>> PostAsync<T>(
+            string endpoint,
+            object request,
+            CancellationToken cancellationToken)
+        {
+            var json = JsonSerializer.Serialize(request);
+
+            using var content = new StringContent(
+                json,
+                Encoding.UTF8,
+                "application/json"
+            );
+
+            var url = $"{BaseUrl}/{endpoint}";
+
+            using var response = await _httpClient.PostAsync(
+                url,
+                content,
+                cancellationToken
+            );
+
+            var responseBody = await response.Content.ReadAsStringAsync(
+                cancellationToken
+            );
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"Erro na API VNDB: HTTP {(int)response.StatusCode} " +
+                    $"({response.ReasonPhrase}).\n{responseBody}"
+                );
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse<T>>(
+                responseBody,
+                JsonOptions
+            ) ?? throw new InvalidOperationException(
+                "A API VNDB retornou uma resposta JSON inválida."
+            );
+        }
+
+        // ========================================================
+        // MARKDOWN
+        // ========================================================
+
+        private static string BuildMarkdown(
+            VisualNovelDto vn,
+            List<CharacterDto> characters,
+            string requestedVnId)
+        {
+            var md = new VndbMarkdownBuilder();
+
+            // Cabeçalho
+            md.Heading(1, vn.Title ?? requestedVnId);
+
+            md.Image("banner", vn.Image?.Url);
+
+            md.Metadata("VNDB ID", vn.Id ?? requestedVnId);
+
+            md.Metadata(
+                "Developer(s)",
+                JoinNames(vn.Developers?.Select(d => d.Name))
+            );
+
+            md.Metadata("Rating", FormatNumber(vn.Rating));
+            md.Metadata("Average", FormatNumber(vn.Average));
+
+            if (!string.IsNullOrWhiteSpace(vn.Description))
+            {
+                md.Metadata("Description", vn.Description);
+            }
+
+            md.BlankLine();
+
+            // Tags
+            md.Heading(2, "Tags");
+
+            var tags = vn.Tags?
+                .Where(t => !string.IsNullOrWhiteSpace(t.Name))
+                .OrderByDescending(t => t.Rating ?? double.MinValue)
+                .Select(t => t.Name!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList()
+                ?? new List<string>();
+
+            md.Line(
+                tags.Count > 0
+                    ? string.Join(" - ", tags)
+                    : "No tags available."
+            );
+
+            md.BlankLine();
+
+            // Personagens
+            md.Heading(2, "Characters");
+
+            foreach (var character in characters)
+            {
+                md.AppendCharacter(character, requestedVnId);
+            }
+
+            // Notas fixas do modelo de Markdown
+            md.AppendTranslationNotes();
+
+            return md.ToString().TrimEnd() + Environment.NewLine;
+        }
+
+        private static string? JoinNames(IEnumerable<string?>? names)
+        {
+            if (names is null)
+                return null;
+
+            var values = names
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return values.Count > 0
+                ? string.Join(" - ", values)
+                : null;
+        }
+
+        private static string? FormatNumber(double? value)
+        {
+            return value?.ToString(
+                "0.##",
+                CultureInfo.InvariantCulture
+            );
+        }
+
+        // ========================================================
+        // UTILITÁRIOS
+        // ========================================================
+
+        private static void ValidateVnId(string vnId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(vnId);
+
+            if (!Regex.IsMatch(vnId, @"^v\d+$", RegexOptions.IgnoreCase))
+            {
+                throw new ArgumentException(
+                    "O ID deve estar no formato v7014.",
+                    nameof(vnId)
+                );
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_ownsHttpClient)
+                _httpClient.Dispose();
+        }
+
+        // ========================================================
+        // DTOs INTERNOS
+        // ========================================================
+
+        private sealed class ApiResponse<T>
+        {
+            [JsonPropertyName("results")]
+            public List<T> Results { get; set; } = new();
+
+            [JsonPropertyName("more")]
+            public bool More { get; set; }
+        }
+
+        private sealed class VisualNovelDto
+        {
+            [JsonPropertyName("id")]
+            public string? Id { get; set; }
+
+            [JsonPropertyName("title")]
+            public string? Title { get; set; }
+
+            [JsonPropertyName("description")]
+            public string? Description { get; set; }
+
+            [JsonPropertyName("image")]
+            public ImageDto? Image { get; set; }
+
+            [JsonPropertyName("tags")]
+            public List<TagDto>? Tags { get; set; }
+
+            [JsonPropertyName("developers")]
+            public List<DeveloperDto>? Developers { get; set; }
+
+            [JsonPropertyName("rating")]
+            public double? Rating { get; set; }
+
+            [JsonPropertyName("average")]
+            public double? Average { get; set; }
+        }
+
+        internal sealed class CharacterDto
+        {
+            [JsonPropertyName("id")]
+            public string? Id { get; set; }
+
+            [JsonPropertyName("name")]
+            public string? Name { get; set; }
+
+            [JsonPropertyName("original")]
+            public string? Original { get; set; }
+
+            [JsonPropertyName("aliases")]
+            public List<string?>? Aliases { get; set; }
+
+            [JsonPropertyName("description")]
+            public string? Description { get; set; }
+
+            [JsonPropertyName("image")]
+            public ImageDto? Image { get; set; }
+
+            [JsonPropertyName("sex")]
+            public List<string?>? Sex { get; set; }
+
+            [JsonPropertyName("gender")]
+            public List<string?>? Gender { get; set; }
+
+            [JsonPropertyName("vns")]
+            public List<CharacterVnDto>? Vns { get; set; }
+        }
+
+        internal sealed class ImageDto
+        {
+            [JsonPropertyName("url")]
+            public string? Url { get; set; }
+        }
+
+        private sealed class TagDto
+        {
+            [JsonPropertyName("name")]
+            public string? Name { get; set; }
+
+            [JsonPropertyName("rating")]
+            public double? Rating { get; set; }
+        }
+
+        private sealed class DeveloperDto
+        {
+            [JsonPropertyName("name")]
+            public string? Name { get; set; }
+        }
+
+        internal sealed class CharacterVnDto
+        {
+            [JsonPropertyName("id")]
+            public string? Id { get; set; }
+
+            [JsonPropertyName("title")]
+            public string? Title { get; set; }
+
+            [JsonPropertyName("role")]
+            public string? Role { get; set; }
+        }
+    }
+}
