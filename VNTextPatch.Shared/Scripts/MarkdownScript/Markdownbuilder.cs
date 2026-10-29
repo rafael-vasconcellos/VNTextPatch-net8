@@ -84,7 +84,13 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             return this;
         }
 
-        public override string ToString() => _sb.ToString();
+        public MarkdownBuilder UnorderedList()
+        {
+            _sb.Append("- ");
+            return this;
+        }
+
+        public override string ToString() => _sb.ToString().TrimEnd() + Environment.NewLine;
     }
 
     /// <summary>
@@ -101,7 +107,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
 
             Image("banner", character.Image?.Url);
 
-            Metadata("Original name", character.Original);
+            UnorderedList().Metadata("Original name", character.Original);
 
             var aliases = character.Aliases?
                 .Where(a => !string.IsNullOrWhiteSpace(a))
@@ -111,11 +117,11 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
 
             if (aliases is { Count: > 0 })
             {
-                Metadata("Aliases", string.Join(" - ", aliases));
+                UnorderedList().Metadata("Aliases", string.Join(" - ", aliases));
             }
 
-            Metadata("Gender", GetGender(character));
-            Metadata("Role", GetRole(character, vnId));
+            UnorderedList().Metadata("Gender", GetGender(character));
+            UnorderedList().Metadata("Role", GetRole(character, vnId)).BlankLine();
 
             if (!string.IsNullOrWhiteSpace(character.Description))
             {

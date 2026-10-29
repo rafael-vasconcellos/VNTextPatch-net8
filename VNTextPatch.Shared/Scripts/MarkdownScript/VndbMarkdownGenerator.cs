@@ -50,7 +50,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
                 cancellationToken
             );
 
-            return BuildMarkdown(vn, characters, vnId);
+            return BuildMarkdown(vn, characters, vnId).ToString();
         }
 
         /// <summary>
@@ -205,7 +205,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
         // MARKDOWN
         // ========================================================
 
-        private static string BuildMarkdown(
+        private static VndbMarkdownBuilder BuildMarkdown(
             VisualNovelDto vn,
             List<CharacterDto> characters,
             string requestedVnId)
@@ -217,15 +217,15 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
 
             md.Image("banner", vn.Image?.Url);
 
-            md.Metadata("VNDB ID", vn.Id ?? requestedVnId);
+            md.UnorderedList().Metadata("VNDB ID", vn.Id ?? requestedVnId);
 
-            md.Metadata(
+            md.UnorderedList().Metadata(
                 "Developer(s)",
                 JoinNames(vn.Developers?.Select(d => d.Name))
             );
 
-            md.Metadata("Rating", FormatNumber(vn.Rating));
-            md.Metadata("Average", FormatNumber(vn.Average));
+            md.UnorderedList().Metadata("Rating", FormatNumber(vn.Rating));
+            md.UnorderedList().Metadata("Average", FormatNumber(vn.Average)).BlankLine();
 
             if (!string.IsNullOrWhiteSpace(vn.Description))
             {
@@ -264,7 +264,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             // Notas fixas do modelo de Markdown
             md.AppendTranslationNotes();
 
-            return md.ToString().TrimEnd() + Environment.NewLine;
+            return md;
         }
 
         private static string? JoinNames(IEnumerable<string?>? names)
