@@ -156,6 +156,15 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
                     StringComparer.OrdinalIgnoreCase
                 )
                 .Select(g => g.First())
+                .OrderBy(c => c.GetRole(vnId) switch
+                {
+                    "main" => 0,
+                    "primary" => 1,
+                    "side" => 2,
+                    "appears" => 3,
+                    _ => 4
+                })
+                .ThenBy(c => string.IsNullOrWhiteSpace(c.Image?.Url) ? 1 : 0)
                 .ToList();
         }
 
@@ -389,6 +398,20 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
 
             [JsonPropertyName("vns")]
             public List<CharacterVnDto>? Vns { get; set; }
+
+            public string? GetRole(string vnId)
+            {
+                return Vns?
+                    .Where(v =>
+                        string.Equals(
+                            v.Id,
+                            vnId,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                    .Select(v => v.Role)
+                    .FirstOrDefault(r => !string.IsNullOrWhiteSpace(r));
+            }
         }
 
         internal sealed class ImageDto

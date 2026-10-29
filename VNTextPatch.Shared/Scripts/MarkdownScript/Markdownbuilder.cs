@@ -40,13 +40,6 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             return this;
         }
 
-        /// <summary>Item de lista (<c>- texto</c>).</summary>
-        public MarkdownBuilder ListItem(string text)
-        {
-            _sb.Append("- ").AppendLine(text);
-            return this;
-        }
-
         /// <summary>
         /// Imagem seguida de uma linha em branco.
         /// Ignorada se a URL estiver vazia.
@@ -84,9 +77,24 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             return this;
         }
 
+        public MarkdownBuilder Block(string lang, string value)
+        {
+            _sb.AppendLine($"```{lang}")
+                .AppendLine(value)
+                .AppendLine("```");
+            return this;
+        }
+
         public MarkdownBuilder UnorderedList()
         {
             _sb.Append("- ");
+            return this;
+        }
+
+        /// <summary>Item de lista (<c>- texto</c>).</summary>
+        public MarkdownBuilder ListItem(string text)
+        {
+            _sb.Append("- ").AppendLine(text);
             return this;
         }
 
@@ -160,16 +168,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
 
         private static string? GetRole(CharacterDto character, string vnId)
         {
-            var role = character.Vns?
-                .Where(v =>
-                    string.Equals(
-                        v.Id,
-                        vnId,
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                )
-                .Select(v => v.Role)
-                .FirstOrDefault(r => !string.IsNullOrWhiteSpace(r));
+            var role = character.GetRole(vnId);
 
             if (role is null)
                 return null;
