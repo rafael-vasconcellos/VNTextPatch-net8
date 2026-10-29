@@ -2,23 +2,20 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using System.Text.RegularExpressions;
 
 
 namespace VNTextPatch.Shared.Scripts.MarkdownScript
 {
-    public sealed class VndbMarkdownGenerator : IDisposable
+    public sealed partial class VndbMarkdownGenerator : IDisposable
     {
         private const string BaseUrl = "https://api.vndb.org/kana";
 
         private readonly HttpClient _httpClient;
         private readonly bool _ownsHttpClient;
-
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true
-        };
 
         public VndbMarkdownGenerator(HttpClient? httpClient = null)
         {
@@ -91,23 +88,21 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             string vnId,
             CancellationToken cancellationToken)
         {
-            var request = new
+            var request = new JsonObject
             {
-                filters = new object[]
-                {
-                    "id", "=", vnId
-                },
-                fields =
+                ["filters"] = new JsonArray("id", "=", vnId),
+                ["fields"] =
                     "id, title, description, tags.name, tags.rating, " +
                     "image.url, developers.name, rating, average",
-                results = 1,
-                compact_filters = false,
-                normalized_filters = false
+                ["results"] = 1,
+                ["compact_filters"] = false,
+                ["normalized_filters"] = false
             };
 
-            var response = await PostAsync<VisualNovelDto>(
+            var response = await PostAsync(
                 "vn",
                 request,
+                VndbJsonContext.Default.VisualNovelResponse,
                 cancellationToken
             );
 
@@ -127,27 +122,24 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
 
             for (var page = 1; ; page++)
             {
-                var request = new
+                var request = new JsonObject
                 {
-                    filters = new object[]
-                    {
-                        "vn", "=", new object[]
-                        {
-                            "id", "=", vnId
-                        }
-                    },
-                    fields =
+                    ["filters"] = new JsonArray(
+                        "vn", "=", new JsonArray("id", "=", vnId)
+                    ),
+                    ["fields"] =
                         "id, name, original, aliases, description, image.url, " +
                         "sex, gender, vns.id, vns.role, vns.title",
-                    results = pageSize,
-                    page,
-                    compact_filters = false,
-                    normalized_filters = false
+                    ["results"] = pageSize,
+                    ["page"] = page,
+                    ["compact_filters"] = false,
+                    ["normalized_filters"] = false
                 };
 
-                var response = await PostAsync<CharacterDto>(
+                var response = await PostAsync(
                     "character",
                     request,
+                    VndbJsonContext.Default.CharacterResponse,
                     cancellationToken
                 );
 
@@ -169,10 +161,11 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
 
         private async Task<ApiResponse<T>> PostAsync<T>(
             string endpoint,
-            object request,
+            JsonNode request,
+            JsonTypeInfo<ApiResponse<T>> responseTypeInfo,
             CancellationToken cancellationToken)
         {
-            var json = JsonSerializer.Serialize(request);
+            var json = request.ToJsonString();
 
             using var content = new StringContent(
                 json,
@@ -200,9 +193,9 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
                 );
             }
 
-            return JsonSerializer.Deserialize<ApiResponse<T>>(
+            return JsonSerializer.Deserialize(
                 responseBody,
-                JsonOptions
+                responseTypeInfo
             ) ?? throw new InvalidOperationException(
                 "A API VNDB retornou uma resposta JSON inválida."
             );
@@ -324,6 +317,13 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
         // ========================================================
         // DTOs INTERNOS
         // ========================================================
+
+        [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
+        [JsonSerializable(typeof(ApiResponse<VisualNovelDto>), TypeInfoPropertyName = "VisualNovelResponse")]
+        [JsonSerializable(typeof(ApiResponse<CharacterDto>), TypeInfoPropertyName = "CharacterResponse")]
+        private partial class VndbJsonContext : JsonSerializerContext
+        {
+        }
 
         private sealed class ApiResponse<T>
         {
