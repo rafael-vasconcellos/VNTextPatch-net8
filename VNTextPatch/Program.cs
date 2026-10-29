@@ -80,7 +80,7 @@ namespace VNTextPatch
                 else
                     extracter.ExtractAll();
 
-                PrintExtractionStatistics(extracter.TotalLines, extracter.TotalCharacters);
+                extracter.PrintExtractionStatistics();
                 AppSettings.CreateFile(Path.GetDirectoryName(textPath)!);
             }
             finally
@@ -297,12 +297,6 @@ namespace VNTextPatch
                 //Console.WriteLine(e);
                 return false;
             }
-        }
-
-        private static void PrintExtractionStatistics(int lines, int characters)
-        {
-            Console.WriteLine($"Total lines: {lines}");
-            Console.WriteLine($"Total characters: {characters}");
         }
 
         private static void PrintUsage()

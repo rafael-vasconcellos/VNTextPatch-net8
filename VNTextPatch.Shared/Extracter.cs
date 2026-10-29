@@ -86,5 +86,11 @@ namespace VNTextPatch.Shared
 
             }
         }
+
+        public void PrintExtractionStatistics()
+        {
+            Console.WriteLine($"Total lines: {TotalLines}");
+            Console.WriteLine($"Total characters: {TotalCharacters}");
+        }
     }
 }
