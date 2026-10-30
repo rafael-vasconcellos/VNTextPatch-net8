@@ -8,10 +8,10 @@
 // Não suportado: versões Pro (cryptVersion >= 1000 / 0xC8), que dependem do Game.dat / chave Pro.
 
 using System;
-using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
+using System.Buffers.Binary;
 using System.Text;
 
 namespace VNTextPatch.Archives

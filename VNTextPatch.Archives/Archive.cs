@@ -21,10 +21,10 @@ namespace VNTextPatch.Archives
                 Console.WriteLine(file);
             }
         }
-        public static void PackLocal(string pathToPack, string outputPath, string? encriptionKey = null)
+        public static void PackLocal(string pathToPack, string outputPath, string? version = null, string? encriptionKey = null)
         {
             var archive = ArchiveCollection.GetArchive(Path.GetExtension(outputPath));
-            archive.Pack(pathToPack, outputPath, encriptionKey);
+            archive.Pack(pathToPack, outputPath, version, encriptionKey);
         }
     }
 }
