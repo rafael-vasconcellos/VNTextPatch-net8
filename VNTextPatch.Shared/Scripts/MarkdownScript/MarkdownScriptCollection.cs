@@ -30,7 +30,7 @@ namespace VNTextPatch.Shared.Scripts
                 markdownBuilder = await generator.GenerateBuilderAsync(vnId);
             } catch (Exception ex)
             {
-                throw new Exception($"Falha ao obter metadados da VNDB: {ex.Message}");
+                throw new Exception($"Failed to fetch VNDB data: {ex.Message}");
             }
 
             return markdownBuilder;
@@ -70,8 +70,7 @@ namespace VNTextPatch.Shared.Scripts
                 yaml.AppendLine(line);
             }
 
-            throw new InvalidDataException(
-                "O arquivo Markdown não contém um bloco YAML válido.");
+            throw new InvalidDataException("The Markdown file doesn't contain a valid YAML block.");
         }
 
         public void CleanupEmptyExtraction()

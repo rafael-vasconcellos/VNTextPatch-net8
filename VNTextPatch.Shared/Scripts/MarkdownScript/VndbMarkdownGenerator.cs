@@ -127,7 +127,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
 
             return response.Results.FirstOrDefault()
                 ?? throw new InvalidOperationException(
-                    $"Visual novel '{vnId}' não encontrada."
+                    $"Visual novel '{vnId}' not found."
                 );
         }
 
@@ -216,7 +216,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             if (!response.IsSuccessStatusCode)
             {
                 throw new HttpRequestException(
-                    $"Erro na API VNDB: HTTP {(int)response.StatusCode} " +
+                    $"VNDB API Error: HTTP {(int)response.StatusCode} " +
                     $"({response.ReasonPhrase}).\n{responseBody}"
                 );
             }
@@ -224,9 +224,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             return JsonSerializer.Deserialize(
                 responseBody,
                 responseTypeInfo
-            ) ?? throw new InvalidOperationException(
-                "A API VNDB retornou uma resposta JSON inválida."
-            );
+            ) ?? throw new InvalidOperationException("The VNDB API returned a invalid JSON response.");
         }
 
         // ========================================================
@@ -330,7 +328,7 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             if (!Regex.IsMatch(vnId, @"^v\d+$", RegexOptions.IgnoreCase))
             {
                 throw new ArgumentException(
-                    "O ID deve estar no formato v7014.",
+                    "The ID must be in the format v7014.",
                     nameof(vnId)
                 );
             }
