@@ -22,6 +22,7 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 + auto generate `settings.xml` after `extractlocal`
 + add `YamlScript` for handling YAML format. you can generate a single YAML file containing all of the game dialogue, so you can throw it in the AI chatbot of your preference.
 + enhance insertion statistics logs for all scripts
++ add `MarkdownScriptCollection` for handling the YAML/YML wrapped in markdown with VNDB data
 
 #### replaced libs
 + System.Configuration -> Microsoft.Extensions.Configuration  
@@ -83,6 +84,11 @@ YAML/YML:
 
 VNTextPatch extractlocal <source> <script.yaml>
 VNTextPatch insertlocal <source> <script.yaml> <patched>
+
+YAML/YML wrapped in markdown with VNDB data:
+
+VNTextPatch extractlocal <source> <v2002.md>
+VNTextPatch insertlocal <source> <v2002.md> <patched>
 
 Options:
     -h, --help    Displays this screen

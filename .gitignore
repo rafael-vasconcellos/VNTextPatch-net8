@@ -2,8 +2,5 @@ obj
 bin
 .vscode
 Build
-input
-output
-patched
+test/*
 MyAppBundle
-VNTextPatch-browser-wasm.zip

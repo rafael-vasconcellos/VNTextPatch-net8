@@ -1,1 +1,0 @@
-Build/VNTextPatch-linux-x64/VNTextPatch extractlocal tests/input tests/output.xlsx
