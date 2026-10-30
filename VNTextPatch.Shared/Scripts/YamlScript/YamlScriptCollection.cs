@@ -16,14 +16,30 @@ namespace VNTextPatch.Shared.Scripts
         private readonly List<string> _scriptNames = new List<string>();
         private YamlScript _script;
         private bool _isDirty;
+        private readonly bool _isFileBacked;
 
         public YamlScriptCollection(string filePath)
         {
             Name = filePath;
+            _isFileBacked = true;
 
             if (File.Exists(filePath))
-                Read();
+            {
+                using (StreamReader reader = new StreamReader(filePath))
+                {
+                    Read(reader);
+                }
+            }
 
+            _script = new YamlScript(this);
+        }
+
+        public YamlScriptCollection(TextReader reader, string name = "<memory>")
+        {
+            Name = name;
+            _isFileBacked = false;
+
+            Read(reader);
             _script = new YamlScript(this);
         }
 
@@ -79,9 +95,7 @@ namespace VNTextPatch.Shared.Scripts
         {
             _script = null!;
 
-            // Só regrava se algo mudou: ler/aplicar o patch não reformata o arquivo
-            // (e não descarta os comentários que alguém tenha escrito nele).
-            if (_isDirty)
+            if (_isDirty && _isFileBacked)
             {
                 Save();
                 _isDirty = false;
@@ -90,7 +104,8 @@ namespace VNTextPatch.Shared.Scripts
 
         public void CleanupEmptyExtraction()
         {
-            File.Delete(Name);
+            if (_isFileBacked)
+                File.Delete(Name);
         }
 
         internal List<YamlEntry> GetEntries(string scriptName)
@@ -121,15 +136,12 @@ namespace VNTextPatch.Shared.Scripts
             _isDirty = true;
         }
 
-        private void Read()
+        private void Read(TextReader reader)
         {
             YamlStream yaml = new YamlStream();
             try
             {
-                using (StreamReader reader = new StreamReader(Name))
-                {
-                    yaml.Load(reader);
-                }
+                yaml.Load(reader);
             }
             catch (YamlException ex)
             {
@@ -218,7 +230,7 @@ namespace VNTextPatch.Shared.Scripts
             return new InvalidDataException(Name + ": linha " + node.Start.Line + ": " + message);
         }
 
-        private void Save()
+        public string GetYamlString()
         {
             YamlMappingNode root = new YamlMappingNode();
             foreach (string scriptName in _scriptNames)
@@ -239,11 +251,17 @@ namespace VNTextPatch.Shared.Scripts
             new YamlStream(new YamlDocument(root))
                 .Save(new Emitter(yamlStringWriter, settings), false);
 
+            return yamlStringWriter.ToString();
+        }
+
+        private void Save()
+        {
+            string s = GetYamlString();
             //string tempPath = Name + ".temp";
             File.WriteAllText(
                 Name,
                 //InsertBlankLines(yamlStringWriter.ToString()), new UTF8Encoding(false)
-                yamlStringWriter.ToString(), new UTF8Encoding(false)
+                s, new UTF8Encoding(false)
             );
             //File.Move(tempPath, Name, true);
         }
