@@ -113,7 +113,7 @@ namespace VNTextPatch.Shared.Scripts
             if (!string.IsNullOrEmpty(scriptName) && _scripts.ContainsKey(scriptName))
                 return _scripts[scriptName];
             
-            throw new Exception($"{scriptName} não foi encontrado.");
+            throw new Exception($"Script '{scriptName}' was not found.");
         }
 
         internal List<YamlEntry>? TryGetEntries(string scriptName)
@@ -152,7 +152,7 @@ namespace VNTextPatch.Shared.Scripts
                 return;
 
             if (yaml.Documents[0].RootNode is not YamlMappingNode root)
-                throw Error(yaml.Documents[0].RootNode, "a raiz do arquivo precisa ser um mapa (nome do script -> lista de falas)");
+                throw Error(yaml.Documents[0].RootNode, "The document root must be a mapping (script name -> list of dialogue entries).");
 
             foreach (KeyValuePair<YamlNode, YamlNode> script in root.Children)
             {
@@ -168,7 +168,7 @@ namespace VNTextPatch.Shared.Scripts
                 }
                 else if (!(script.Value is YamlScalarNode { Value: null or "" }))
                 {
-                    throw Error(script.Value, "o conteúdo de um script precisa ser uma lista de falas");
+                    throw Error(script.Value, "The content of a script must be a list of dialogue entries.");
                 }
 
                 _scriptNames.Add(scriptName);
@@ -179,7 +179,7 @@ namespace VNTextPatch.Shared.Scripts
         private YamlEntry ReadEntry(YamlNode node)
         {
             if (node is not YamlMappingNode map)
-                throw Error(node, "cada fala precisa ser um mapa com 'name' e/ou 'message'");
+                throw Error(node, "Each dialogue entry must be a mapping with 'name' and/or 'message'.");
 
             YamlEntry entry = new YamlEntry();
             foreach (KeyValuePair<YamlNode, YamlNode> field in map.Children)
@@ -193,7 +193,7 @@ namespace VNTextPatch.Shared.Scripts
 
                     case "names":
                         if (field.Value is not YamlSequenceNode names)
-                            throw Error(field.Value, "'names' precisa ser uma lista");
+                            throw Error(field.Value, "'names' must be a list.");
                         entry.Names = new List<string>();
                         foreach (YamlNode name in names.Children)
                         {
@@ -208,11 +208,11 @@ namespace VNTextPatch.Shared.Scripts
                     case "index": break;
 
                     default:
-                        throw Error(field.Key, "campo desconhecido '" + key + "'");
+                        throw Error(field.Key, "Unknown field '" + key + "'.");
                 }
             }
 
-            if (entry.Message == null) throw Error(map, "falta o campo 'message'");
+            if (entry.Message == null) throw Error(map, "The 'message' field is missing.");
 
             return entry;
         }
@@ -222,7 +222,7 @@ namespace VNTextPatch.Shared.Scripts
             if (node is YamlScalarNode scalar)
                 return scalar.Value ?? string.Empty;
 
-            throw Error(node, "era esperado um texto");
+            throw Error(node, "Expected a string.");
         }
 
         private InvalidDataException Error(YamlNode node, string message)
