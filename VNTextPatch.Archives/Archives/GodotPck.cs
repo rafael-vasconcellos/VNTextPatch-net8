@@ -14,7 +14,7 @@ using System.Linq;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
+
 
 namespace VNTextPatch.Archives
 {

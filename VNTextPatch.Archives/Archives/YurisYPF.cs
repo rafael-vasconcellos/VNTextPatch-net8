@@ -1,18 +1,18 @@
 // YurisYPF.cs
 // Implementação de VNTextPatch.Archives.IArchive para arquivos YPF (Yu-Ris).
 // Baseada em https://github.com/Xorboth/YPF-Manager (versões 234 a 500: tabela de tamanho
-// de nome, chave de nome, CRC32/Adler-32/MurmurHash2, offsets de 32/64 bits, zlib, .ycg)
-// e em https://github.com/crskycode/YPF_Tool (formato original do cabeçalho e do índice).
+// de nome, chave de nome, CRC32/Adler-32/MurmurHash2, offsets de 32/64 bits, zlib, .ycg).
 
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Globalization;
+using System.Linq;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
+using System.Buffers.Binary;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+
 
 namespace VNTextPatch.Archives
 {
@@ -203,14 +203,14 @@ namespace VNTextPatch.Archives
         /// Arquivos com extensão ".ycg" perdem o sufixo no nome e recebem o tipo YCG.
         /// Arquivos vazios não são suportados.
         /// </summary>
-        public void Pack(string pathToPack, string outputPath, string? encriptionKey)
+        public void Pack(string pathToPack, string outputPath, string? version, string? encriptionKey)
         {
             if (string.IsNullOrWhiteSpace(pathToPack))
                 throw new ArgumentException("A pasta de origem é obrigatória.", nameof(pathToPack));
             if (string.IsNullOrWhiteSpace(outputPath))
                 throw new ArgumentException("O caminho do YPF de saída é obrigatório.", nameof(outputPath));
-            if (!string.IsNullOrEmpty(encriptionKey))
-                PackVersion = int.Parse(encriptionKey);
+            if (!string.IsNullOrEmpty(version))
+                PackVersion = int.Parse(version);
 
             VersionInfo info = VersionInfo.Create(PackVersion, null);
             string inputRoot = Path.GetFullPath(pathToPack);

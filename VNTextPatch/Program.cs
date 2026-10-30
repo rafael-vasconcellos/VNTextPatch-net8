@@ -362,6 +362,7 @@ namespace VNTextPatch
         private class Options
         {
             public string? EncriptionKey;
+            public string? PackVersion;
             public static Options Parse(string[] args, out string[] unnamedArgs)
             {
                 Options options = new Options();
@@ -407,6 +408,9 @@ namespace VNTextPatch
                             break;
                         case "key":
                             options.EncriptionKey = value;
+                            break;
+                        case "version":
+                            options.PackVersion = value;
                             break;
                     }
                 }

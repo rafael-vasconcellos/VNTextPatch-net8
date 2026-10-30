@@ -10,6 +10,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Buffers.Binary;
 
+
 namespace VNTextPatch.Archives
 {
     public sealed class Xp3FileInfo
@@ -158,7 +159,7 @@ namespace VNTextPatch.Archives
         /// Cria um XP3 com segmentos sem compressão a partir de todos os arquivos
         /// encontrados recursivamente em pathToPack. O índice é comprimido com zlib.
         /// </summary>
-        public void Pack(string pathToPack, string outputPath, string? encriptionKey = null)
+        public void Pack(string pathToPack, string outputPath, string? version, string? encriptionKey)
         {
             if (string.IsNullOrWhiteSpace(pathToPack))
                 throw new ArgumentException("A pasta de origem é obrigatória.", nameof(pathToPack));
