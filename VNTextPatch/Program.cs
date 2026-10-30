@@ -244,6 +244,9 @@ namespace VNTextPatch
                 case ".yaml" or ".yml":
                     var yamlCollection = new YamlScriptCollection(textPath);
                     return new ScriptLocation(yamlCollection, scriptName!);
+                case ".md":
+                    var mdCollection = new MarkdownScriptCollection(textPath);
+                    return new ScriptLocation(mdCollection, scriptName!);
 
                 default:
                     throw new ArgumentException("Script path must be a .json or .xlsx file or an existing folder");
