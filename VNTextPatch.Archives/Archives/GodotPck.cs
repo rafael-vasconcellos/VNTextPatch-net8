@@ -58,15 +58,15 @@ namespace VNTextPatch.Archives
         public virtual string? Extension => ".pck";
 
         /// <summary>
-        /// Formato do PCK criado por Pack (0 a 4). A interface IArchive.Pack não recebe versão, então
-        /// ela é propriedade da instância. Load atualiza o valor; se o destino de Pack já existir e for
-        /// um PCK válido, a versão dele tem prioridade. Padrão: 2 (Godot 4.0 a 4.4).
+        /// Formato do PCK criado por Pack (0 a 4) quando o parâmetro version não é informado e o destino
+        /// ainda não é um PCK. Load atualiza o valor. Padrão: 2 (Godot 4.0 a 4.4).
         /// </summary>
         public int FormatVersion { get; set; } = 2;
 
         /// <summary>
-        /// Versão do Godot gravada no cabeçalho (major.minor.revision). O Godot recusa PCKs feitos por
-        /// uma versão mais nova que a dele, então o padrão é o mais baixo possível (4.0.0).
+        /// Versão do Godot gravada no cabeçalho (major.minor.revision), com as mesmas regras de
+        /// FormatVersion. O Godot recusa PCKs feitos por uma versão mais nova que a dele, então o padrão
+        /// é o mais baixo possível (4.0.0).
         /// </summary>
         public Version EngineVersion { get; set; } = new Version(4, 0, 0);
 
@@ -189,9 +189,12 @@ namespace VNTextPatch.Archives
         /// Cria um PCK com todos os arquivos de pathToPack (recursivo). Com encriptionKey, o índice e os
         /// arquivos são criptografados (somente formatos 2 e 3). "@@user@@/x" vira "user://x" e o sufixo
         /// ".@@removal@@" vira a flag de remoção (4.4+), como o GodotPCKExplorer. O arquivo é escrito em
-        /// um temporário e só substitui o destino se tudo der certo.
+        /// um temporário e só substitui o destino se tudo der certo. version é opcional, no formato do
+        /// GodotPCKExplorer: "formato.major.minor.revisão" (ex.: "2.4.3.0" = formato 2, Godot 4.3.0).
+        /// Prioridade: version informada, depois a versão do destino (se já for um PCK), depois as
+        /// propriedades FormatVersion e EngineVersion.
         /// </summary>
-        public void Pack(string pathToPack, string outputPath, string? encriptionKey)
+        public void Pack(string pathToPack, string outputPath, string? version, string? encriptionKey)
         {
             if (string.IsNullOrWhiteSpace(pathToPack))
                 throw new ArgumentException("A pasta de origem é obrigatória.", nameof(pathToPack));
@@ -209,7 +212,9 @@ namespace VNTextPatch.Archives
             if (!string.IsNullOrEmpty(outputDirectory))
                 Directory.CreateDirectory(outputDirectory);
 
-            (int format, Version engine) = ReadExistingVersion(outputFullPath) ?? (FormatVersion, EngineVersion);
+            (int format, Version engine) = ParseVersion(version)
+                ?? ReadExistingVersion(outputFullPath)
+                ?? (FormatVersion, EngineVersion);
             if (format < 0 || format > MaxFormat)
                 throw new NotSupportedException($"Formato de PCK não suportado: {format} (suportados: 0 a {MaxFormat}).");
             if (key != null && format < 2)
@@ -747,6 +752,25 @@ namespace VNTextPatch.Archives
                 stream.Write(zeros, 0, n);
                 count -= n;
             }
+        }
+
+        private static (int Format, Version Engine)? ParseVersion(string? version)
+        {
+            if (string.IsNullOrWhiteSpace(version))
+                return null;
+
+            string[] parts = version.Trim().Split('.');
+            if (parts.Length != 4 ||
+                !int.TryParse(parts[0], out int format) || !int.TryParse(parts[1], out int major) ||
+                !int.TryParse(parts[2], out int minor) || !int.TryParse(parts[3], out int revision) ||
+                format < 0 || major < 0 || minor < 0 || revision < 0)
+            {
+                throw new ArgumentException(
+                    $"Versão inválida: \"{version}\". Use \"formato.major.minor.revisão\", ex.: \"2.4.3.0\".",
+                    nameof(version));
+            }
+
+            return (format, new Version(major, minor, revision));
         }
 
         private static (int Format, Version Engine)? ReadExistingVersion(string path)
