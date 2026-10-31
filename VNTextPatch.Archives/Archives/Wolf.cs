@@ -8,15 +8,15 @@
 // Não suportado: versões Pro (cryptVersion >= 1000 / 0xC8), que dependem do Game.dat / chave Pro.
 
 using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
 using System.Buffers.Binary;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace VNTextPatch.Archives
 {
-    public sealed class Wolf : IArchive
+    public sealed partial class Wolf : IArchive
     {
         internal sealed record Mode(string Name, ushort CryptVersion, int Format, byte[] Key);
 
@@ -36,6 +36,7 @@ namespace VNTextPatch.Archives
             new Mode("One Way Heroics Plus", 0x0, 8, new byte[] { 0x50, 0x68, 0x3D, 0x58, 0x33, 0x5E, 0x5D, 0x6F, 0x32, 0x41, 0x28, 0x2C, 0x31, 0x3D, 0x40, 0x33, 0x23, 0x61, 0x00 }),
         };
 
+        private const string CustomModeName = "Chave informada";
         private const int HeadSize8 = 64;
         private const int KeyStringMax = 63;      // DXA_KEY_STRING_LENGTH
         private const int KeyBufferMax = 2048 - 8; // DXA_KEY_STRING_MAXLENGTH - 8
@@ -92,6 +93,7 @@ namespace VNTextPatch.Archives
         public HashSet<string> ListFiles(bool recursive)
         {
             ThrowIfDisposed();
+            Console.WriteLine(DescribeDetectedVersion(_ctx!));
             var result = new HashSet<string>();
             foreach (Entry entry in LoadedEntries)
             {
@@ -114,7 +116,7 @@ namespace VNTextPatch.Archives
             List<Entry> entries = LoadedEntries;
             string root = Path.GetFullPath(outputPath);
             Directory.CreateDirectory(root);
-            Console.WriteLine("Unpacking...");
+            Console.WriteLine(DescribeDetectedVersion(_ctx!));
 
             List<Entry> selected;
             if (string.IsNullOrWhiteSpace(pathToExtract))
@@ -152,11 +154,7 @@ namespace VNTextPatch.Archives
             }
         }
 
-        public void Pack(string pathToPack, string outputPath, string? encriptionKey)
-        {
-            throw new NotSupportedException(
-                "Empacotar arquivos Wolf RPG ainda não foi implementado (o Wolf.cs só lê/extrai).");
-        }
+        // Pack: veja Wolf.Pack.cs
 
         public void Dispose()
         {
@@ -165,6 +163,47 @@ namespace VNTextPatch.Archives
 
             _disposed = true;
             ReleaseCurrent();
+        }
+
+        // ------------------------------------------------------------------ Versões
+
+        // "Wolf RPG v3.50" -> "3.50"; "ChaCha2 v1" e "One Way Heroics" ficam como estão.
+        internal static string VersionLabel(Mode m)
+        {
+            string n = m.Name;
+            if (n.StartsWith("Wolf RPG ", StringComparison.OrdinalIgnoreCase))
+                n = n.Substring(9);
+            if (n.Length > 1 && (n[0] == 'v' || n[0] == 'V') && char.IsDigit(n[1]))
+                n = n.Substring(1);
+            return n;
+        }
+
+        internal static string NormalizeVersion(string s)
+        {
+            string n = new string(s.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToLowerInvariant();
+            if (n.StartsWith("wolfrpg", StringComparison.Ordinal))
+                n = n.Substring(7);
+            if (n.Length > 1 && n[0] == 'v' && char.IsDigit(n[1]))
+                n = n.Substring(1);
+            return n;
+        }
+
+        private static string DescribeDetectedVersion(Context ctx)
+        {
+            if (ctx.Format != 8)
+                return $"Versão detectada: {ctx.Label} (formato DXA v{ctx.Format}; o Pack não suporta esta versão)";
+
+            if (ctx.CustomKey)
+            {
+                Mode? known = ctx.CryptVersion == 0
+                    ? null
+                    : Modes.FirstOrDefault(m => m.Format == 8 && m.CryptVersion == ctx.CryptVersion);
+                return known != null
+                    ? $"Versão detectada: {VersionLabel(known)} (chave informada manualmente; use version \"{VersionLabel(known)}\" no Pack)"
+                    : $"Versão detectada: cryptVersion {ctx.CryptVersion} (chave informada manualmente)";
+            }
+
+            return $"Versão detectada: {ctx.Label} (use version \"{ctx.Label}\" no Pack)";
         }
 
         // ------------------------------------------------------------------ Estado
@@ -200,6 +239,8 @@ namespace VNTextPatch.Archives
             public long DataStart;
             public byte HuffmanKB;
             public uint CharCode = 932;
+            public string Label = "";          // rótulo da versão detectada (ex.: "3.50")
+            public bool CustomKey;             // a chave veio do usuário
         }
 
         private List<Entry> LoadedEntries =>
@@ -252,7 +293,7 @@ namespace VNTextPatch.Archives
                     byte[] key = custom;
                     if (cv == 0x64 && known != null && custom.Length < 44)
                         key = known.Key;
-                    candidates = new List<Mode> { new Mode("Chave informada", cv, 8, key) };
+                    candidates = new List<Mode> { new Mode(CustomModeName, cv, 8, key) };
                 }
                 else
                 {
@@ -339,6 +380,8 @@ namespace VNTextPatch.Archives
                 || dataStart < 0 || dataStart > fileLen)
                 throw new InvalidDataException("Cabeçalho DXA inválido.");
 
+            ctx.Label = VersionLabel(mode);
+            ctx.CustomKey = mode.Name == CustomModeName;
             ctx.NoKey = (flags & 1) != 0;
             ctx.HuffmanKB = huffKb;
             ctx.DataStart = dataStart;
@@ -357,45 +400,7 @@ namespace VNTextPatch.Archives
             }
 
             if (ctx.NewCrypt)
-            {
-                bool v35 = WolfCrypto.IsV35(cv);
-
-                ctx.OtherKey = WolfCrypto.InitWolfCrypt(cv, pwd, true, keyStr);
-                ctx.OtherMod = v35 ? WolfCrypto.BuildModdedKey(ctx.OtherKey) : null;
-
-                ctx.SpecialKey = WolfCrypto.InitWolfCrypt(cv, pwd, false, null);
-                ctx.SpecialMod = v35 ? WolfCrypto.BuildModdedKey(ctx.SpecialKey) : null;
-
-                // Camada AES-CTR: só afeta o começo dos dados e a região do cabeçalho (do FNT até o fim).
-                if (fileLen - 64 >= 0x400)
-                {
-                    byte[] roundKey = WolfCrypto.InitAes128(pwd, cv);
-                    uint bodySize = 0x400;
-
-                    if (v35)
-                    {
-                        uint seed = (uint)(pwd[2] * pwd[4] + pwd[12]);
-                        if (seed == 0) seed = 1;
-
-                        var xs = new WolfCrypto.XorShift32(seed);
-                        if (fileLen >= (long)(xs.Next() % 500 + 800))
-                            xs.Next();
-
-                        long body = fileLen - 64;
-                        if (body >= (long)(xs.Next() % 500 + 800))
-                            body = xs.Next() % 500 + 800;
-                        bodySize = (uint)body;
-                    }
-
-                    byte[] ks1 = new byte[bodySize];
-                    WolfCrypto.AesCtrXCrypt(ks1, roundKey);
-                    byte[] ks2 = new byte[fileLen - fnt];
-                    WolfCrypto.AesCtrXCrypt(ks2, roundKey);
-
-                    ctx.Overlays.Add((64, ks1));
-                    ctx.Overlays.Add((fnt, ks2));
-                }
-            }
+                SetupNewCrypt(ctx, pwd, keyStr, fileLen, fnt);
 
             // Tabelas (nomes + arquivos + diretórios), comprimidas com Huffman + LZ.
             byte[] headBuf;
@@ -420,6 +425,70 @@ namespace VNTextPatch.Archives
             return (ctx, entries);
         }
 
+        // Prepara as chaves/camadas do esquema "novo" (3.31+). Usado na leitura e no Pack.
+        private static void SetupNewCrypt(Context ctx, byte[] pwd, byte[] keyStr, long fileLen, long fnt)
+        {
+            ushort cv = ctx.CryptVersion;
+            bool v35 = WolfCrypto.IsV35(cv);
+
+            ctx.OtherKey = WolfCrypto.InitWolfCrypt(cv, pwd, true, keyStr);
+            ctx.OtherMod = v35 ? WolfCrypto.BuildModdedKey(ctx.OtherKey) : null;
+
+            ctx.SpecialKey = WolfCrypto.InitWolfCrypt(cv, pwd, false, null);
+            ctx.SpecialMod = v35 ? WolfCrypto.BuildModdedKey(ctx.SpecialKey) : null;
+
+            // Camada AES-CTR: só afeta o começo dos dados e a região do cabeçalho (do FNT até o fim).
+            ctx.Overlays.Clear();
+            if (fileLen - 64 >= 0x400)
+            {
+                byte[] roundKey = WolfCrypto.InitAes128(pwd, cv);
+                uint bodySize = 0x400;
+
+                if (v35)
+                {
+                    uint seed = (uint)(pwd[2] * pwd[4] + pwd[12]);
+                    if (seed == 0) seed = 1;
+
+                    var xs = new WolfCrypto.XorShift32(seed);
+                    if (fileLen >= (long)(xs.Next() % 500 + 800))
+                        xs.Next();
+
+                    long body = fileLen - 64;
+                    if (body >= (long)(xs.Next() % 500 + 800))
+                        body = xs.Next() % 500 + 800;
+                    bodySize = (uint)body;
+                }
+
+                byte[] ks1 = new byte[bodySize];
+                WolfCrypto.AesCtrXCrypt(ks1, roundKey);
+                byte[] ks2 = new byte[fileLen - fnt];
+                WolfCrypto.AesCtrXCrypt(ks2, roundKey);
+
+                ctx.Overlays.Add((64, ks1));
+                ctx.Overlays.Add((fnt, ks2));
+            }
+        }
+
+        // Camadas que valem para o arquivo inteiro (NewCrypt). É um XOR, então serve para ler e para gravar.
+        private static void ApplyNewCryptLayers(Context ctx, long offset, byte[] buf, int index, int count)
+        {
+            // Camada 1: XOR com a chave "other" nos bytes [64, tamanho - 64).
+            long lo = Math.Max(offset, 64);
+            long hi = Math.Min(offset + count, ctx.FileLength - 64);
+            if (lo < hi)
+                WolfCrypto.WolfCryptXor(ctx.OtherKey!, ctx.OtherMod, buf, index + (int)(lo - offset),
+                    (int)(hi - lo), lo, ctx.CryptVersion);
+
+            // Camada 2: AES-CTR (início dos dados e região do cabeçalho).
+            foreach ((long start, byte[] ks) in ctx.Overlays)
+            {
+                long a = Math.Max(offset, start);
+                long z = Math.Min(offset + count, start + ks.Length);
+                for (long p = a; p < z; p++)
+                    buf[index + (int)(p - offset)] ^= ks[p - start];
+            }
+        }
+
         private static (Context, List<Entry>) OpenLegacy(FileStream stream, Mode mode)
         {
             long fileLen = stream.Length;
@@ -434,6 +503,8 @@ namespace VNTextPatch.Archives
                 Format = mode.Format,
                 KeyString = mode.Key,
                 ArchKey = LegacyKeyCreate(mode.Key),
+                Label = VersionLabel(mode),
+                CustomKey = mode.Name.StartsWith(CustomModeName, StringComparison.Ordinal),
             };
 
             byte[] h = new byte[headLen];
@@ -661,24 +732,8 @@ namespace VNTextPatch.Archives
         private static void ReadRaw(Context ctx, long offset, byte[] buf, int index, int count)
         {
             ReadExactAt(ctx.Stream, offset, buf, index, count);
-            if (!ctx.NewCrypt)
-                return;
-
-            // Camada 1: XOR com a chave "other" nos bytes [64, tamanho - 64).
-            long lo = Math.Max(offset, 64);
-            long hi = Math.Min(offset + count, ctx.FileLength - 64);
-            if (lo < hi)
-                WolfCrypto.WolfCryptXor(ctx.OtherKey!, ctx.OtherMod, buf, index + (int)(lo - offset),
-                    (int)(hi - lo), lo, ctx.CryptVersion);
-
-            // Camada 2: AES-CTR (início dos dados e região do cabeçalho).
-            foreach ((long start, byte[] ks) in ctx.Overlays)
-            {
-                long a = Math.Max(offset, start);
-                long z = Math.Min(offset + count, start + ks.Length);
-                for (long p = a; p < z; p++)
-                    buf[index + (int)(p - offset)] ^= ks[p - start];
-            }
+            if (ctx.NewCrypt)
+                ApplyNewCryptLayers(ctx, offset, buf, index, count);
         }
 
         // Cifra por posição aplicada depois (KeyConv do DXArchive).
@@ -941,7 +996,7 @@ namespace VNTextPatch.Archives
 
     // ---------------------------------------------------------------------- Compressão
 
-    internal static class WolfCompression
+    internal static partial class WolfCompression
     {
         // Huffman_Decode (DxLib): cabeçalho com tabela de pesos + fluxo de bits (LSB primeiro).
         internal static byte[] HuffmanDecode(byte[] src)
