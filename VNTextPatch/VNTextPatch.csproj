@@ -15,17 +15,19 @@
   
   <!-- Configurações específicas para WebAssembly -->
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'browser-wasm'">
-    <WasmAppDir>$(OutputPath)MyAppBundle</WasmAppDir>
+    <WasmAppDir>..\Build\VNTextPatch-browser-wasm\MyAppBundle</WasmAppDir>
 
     <UseAppHost>false</UseAppHost>
     <WasmGenerateRunV8Script>false</WasmGenerateRunV8Script>
     <!-- <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath> -->
     <WasmEmitSymbolMap>false</WasmEmitSymbolMap>
     <WasmBuildOnlyAfterPublish>false</WasmBuildOnlyAfterPublish>
-    <InvariantGlobalization>true</InvariantGlobalization>
     <WasmBuildNative>true</WasmBuildNative>
     <WasmNativeStrip>true</WasmNativeStrip>
-    <WasmSingleFileBundle>true</WasmSingleFileBundle>
+
+    <WasmSingleFileBundle>false</WasmSingleFileBundle>
+    <InvariantGlobalization>true</InvariantGlobalization>
+
     <WasmEnableWebServer>true</WasmEnableWebServer>
     <WasmAllowUndefinedSymbols>true</WasmAllowUndefinedSymbols>
   </PropertyGroup>
@@ -62,7 +64,7 @@
   <!-- Pacotes necessários para WebAssembly -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'browser-wasm'">
     <NativeFileReference Include="$(SkiaSharpStaticLibraryPath)\3.1.56\st\*.a" />
-    <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.10" />
+    <!-- <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.10" /> -->
     <ProjectReference Update="..\VNTextPatch.Shared\VNTextPatch.Shared.csproj">
       <AdditionalProperties>DefineConstants=WASM</AdditionalProperties>
     </ProjectReference>
