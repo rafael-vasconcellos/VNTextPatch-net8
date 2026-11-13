@@ -30,9 +30,16 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Install WebAssembly workload
+      - name: Verify .NET SDK
+        run: |
+          dotnet --version
+          dotnet --list-sdks
+
+      - name: Restore WebAssembly workload
         if: matrix.rid == 'browser-wasm'
-        run: dotnet workload install wasm-tools
+        run: |
+          dotnet workload install wasm-tools
+          dotnet workload list
 
       - name: Publish
         env:
