@@ -1,0 +1,78 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.rid }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid:
+          - win-x64
+          - linux-x64
+          - browser-wasm
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install WebAssembly workload
+        if: matrix.rid == 'browser-wasm'
+        run: dotnet workload install wasm-tools
+
+      - name: Publish
+        env:
+          RID: ${{ matrix.rid }}
+        run: bash scripts/publish.sh "$RID"
+
+      - name: Package published files
+        env:
+          RID: ${{ matrix.rid }}
+        run: |
+          mkdir -p dist
+          cd Build
+          zip -r "../dist/VNTextPatch-${RID}-${GITHUB_REF_NAME}.zip" "VNTextPatch-${RID}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.rid }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/*.zip
+          fail_on_unmatched_files: true
