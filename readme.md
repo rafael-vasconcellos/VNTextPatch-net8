@@ -6,6 +6,18 @@ Original repo: [arcusmaximus/VNTranslationTools](https://github.com/arcusmaximus
 Base fork: [hentaitaku/VNTranslationTools](https://github.com/hentaitaku/VNTranslationTools)  
 WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web](https://github.com/rafael-vasconcellos/VNTextPatch-web)
 
+## Table of Contents
+
+- [Changelog](#changelog)
+- [About VNTextPatch](#about-vntextpatch)
+  - [Installing a published release](#installing-a-published-release)
+    - [Windows PowerShell](#windows-powershell)
+    - [Via Python](#via-python)
+  - [Usage](#usage)
+  - [Engines](#engines)
+  - [Character name translation](#character-name-translation)
+  - [Word wrapping](#word-wrapping)
+  - [Shift JIS extension](#shift-jis-extension)
 
 ## Changelog
 
@@ -24,7 +36,7 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 + enhance insertion statistics logs for all scripts
 + add `MarkdownScriptCollection` for handling the YAML/YML wrapped in markdown with VNDB data
 
-#### replaced libs
+**Replaced libs:**  
 + System.Configuration -> Microsoft.Extensions.Configuration  
 + Newtonsoft.json -> System.Text.Json
 + NPOI -> ClosedXML
@@ -32,34 +44,70 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 
 ## About VNTextPatch
 
-Currently the following engines are supported:
+### Installing a published release
 
-| Engine                               | Extension(s)   | Remarks                                                                        |
-| ------------------------------------ | -------------- | ------------------------------------------------------------------------------ |
-| AdvHD                                | .ws2           |                                                                                |
-| ArcGameEngine                        | .bin           |                                                                                |
-| Artemis                              | .asb/.ast/.txt | Append `--format=artemistxt` to command line for .txt                          |
-| Buriko General Interpreter/Ethornell | (none)         | Append `--format=ethornell` to command line                                    |
-| CatSystem2                           | .cst           |                                                                                |
-| Cyberworks C,system                  | .a0            |                                                                                |
-| KaGuYa                               |  message.dat   |                                                                                |
-| Kirikiri                             |  .ks/.scn/.txt | Append `--format=kirikiriks` to command line for .txt                          |
-| Majiro                               | .mjo           |                                                                                |
-| Musica                               | .sc            |                                                                                |
-| Mware                                | .nut           |                                                                                |
-| Propeller/Stuff Script Engine        | .msc           |                                                                                |
-| RealLive                             | .txt           | Append `--format=reallive` to command line                                     |
-| Ren'Py                               | .rpy           |                                                                                |
-| ShSystem                             | .hst           |                                                                                |
-| Silky's/AI6WIN                       | .mes/.map      |                                                                                |
-| Qlie                                 | .s             |                                                                                |
-| Softpal                              | script.src     | Make sure text.dat and point.dat are available in the same folder              |
-| SystemNNN                            | .nnn/.spt      |                                                                                |
-| TmrHiroAdvSystem                     | .srp/(none)    | Append `--format=tmrhiroadvsystemtext` to command line in case of no extension |
-| Whale                                | .txt           | Append `--format=whale` to command line                                        |
-| YU-RIS                               | .ybn           |                                                                                |
+The installation scripts download the platform-specific archive from the latest GitHub release. Installations are placed in a versioned subdirectory; existing versions are not overwritten.
 
-The tool can extract text into Excel workbooks (.xlsx) or JSON files (.json), and reinsert text from Excel, JSON, or Google Docs Spreadsheets. Working with .xlsx files does not require Microsoft Excel to be installed.
+#### Windows PowerShell
+Run it directly from the repository without cloning it:
+
+```powershell
+irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.ps1 | iex
+```
+
+Installing specific version:
+```powershell
+irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.ps1 | pwsh -NoProfile -File - -Version v1.0.100
+```
+
+The Windows build is installed under `%LOCALAPPDATA%\Programs\VNTextPatch`. To choose another installation root, use `-InstallRoot` and `-BinDir`:
+
+```powershell
+irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.ps1 | pwsh -NoProfile -File - -InstallRoot 'C:\Tools\VNTextPatch' -BinDir '%appdata%\.local\bin'
+```
+
+you can set environment variables before downloading and running the script:
+
+```powershell
+$env:VNTP_INSTALL_ROOT = 'C:\Tools\VNTextPatch'
+$env:VNTP_BIN_DIR = '%appdata%\.local\bin'
+irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.ps1 | iex
+```
+
+#### Via Python
+
+Run it directly from the repository without cloning it (should work on all platforms):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.py | python -
+```
+
+Or (powershell only)
+
+```powershell
+irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.py | py -
+```
+
+Installing specific version:
+```bash
+# should work on all platforms
+curl -fsSL https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.py | python - --version v1.0.100
+
+# windows powershell
+irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.py | py - --version v1.0.100
+```
+
+By default, the Linux build is installed under `~/.local/opt/VNTextPatch`. To choose another installation root, pass it as argument:
+
+```bash
+# should work on all platforms
+curl -fsSL https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.py | python - --install-root ~/apps/VNTextPatch --bin-dir ~/.local/bin
+
+# windows powershell
+irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.py | py - --install-root ~/apps/VNTextPatch --bin-dir ~/.local/bin
+```
+
+### Usage
 
 The command line syntax is as follows:
 
@@ -99,19 +147,50 @@ The input folder should only contain the original scenario files. If it contains
 
 Depending on the game, some customization in the tool's source code may be needed. For example, Kirikiri .ks files have no uniform way of indicating character names in dialogue lines, so you may need to extend KirikiriScript.cs to make the tool aware of the method your specific game uses.
 
+### Engines
+
+Currently the following engines are supported:
+
+| Engine                               | Extension(s)   | Remarks                                                                        |
+| ------------------------------------ | -------------- | ------------------------------------------------------------------------------ |
+| AdvHD                                | .ws2           |                                                                                |
+| ArcGameEngine                        | .bin           |                                                                                |
+| Artemis                              | .asb/.ast/.txt | Append `--format=artemistxt` to command line for .txt                          |
+| Buriko General Interpreter/Ethornell | (none)         | Append `--format=ethornell` to command line                                    |
+| CatSystem2                           | .cst           |                                                                                |
+| Cyberworks C,system                  | .a0            |                                                                                |
+| KaGuYa                               |  message.dat   |                                                                                |
+| Kirikiri                             |  .ks/.scn/.txt | Append `--format=kirikiriks` to command line for .txt                          |
+| Majiro                               | .mjo           |                                                                                |
+| Musica                               | .sc            |                                                                                |
+| Mware                                | .nut           |                                                                                |
+| Propeller/Stuff Script Engine        | .msc           |                                                                                |
+| RealLive                             | .txt           | Append `--format=reallive` to command line                                     |
+| Ren'Py                               | .rpy           |                                                                                |
+| ShSystem                             | .hst           |                                                                                |
+| Silky's/AI6WIN                       | .mes/.map      |                                                                                |
+| Qlie                                 | .s             |                                                                                |
+| Softpal                              | script.src     | Make sure text.dat and point.dat are available in the same folder              |
+| SystemNNN                            | .nnn/.spt      |                                                                                |
+| TmrHiroAdvSystem                     | .srp/(none)    | Append `--format=tmrhiroadvsystemtext` to command line in case of no extension |
+| Whale                                | .txt           | Append `--format=whale` to command line                                        |
+| YU-RIS                               | .ybn           |                                                                                |
+
+The tool can extract text into Excel workbooks (.xlsx) or JSON files (.json), and reinsert text from Excel, JSON, or Google Docs Spreadsheets. Working with .xlsx files does not require Microsoft Excel to be installed.
+
 To use `insertgdocs`, you need either a Google API key or a Google service account. Both can be created and managed on the [Google Cloud Dashboard](https://console.cloud.google.com/apis/credentials).
 * If you want to use an API key, open VNTextPatch.exe.config and paste the key in the entry called "GoogleApiKey".
 * If you want to use a service account, place the account's private key in a file called "google-service-account.json" next to VNTextPatch.exe.
 
 The Google Spreadsheet API needs to be enabled for the API key/service account.
 
-## Character name translation
+### Character name translation
 After running `extractlocal`, VNTextPatch will populate a file called names.xml with all the character names it encountered. If you add translations for these names inside this file and run `extractlocal` again, the newly extracted spreadsheet will have the translated names prefilled as a convenience.
 
-## Word wrapping
+### Word wrapping
 Most visual novel engines do not support automatic word wrapping. While it's sometimes possible to change their code to add this support, it's generally easier to "precalculate" the word wrapping by adding explicit line breaks in the patched game files. VNTextPatch can add these line breaks automatically for both monospace fonts (MonospaceWordWrapper.cs) and proportional fonts (ProportionalWordWrapper.cs). Both classes can be configured in VNTextPatch.exe.config. You may need to adapt the tool's source code to make it use the wrapper you want.
 
-## Shift JIS extension
+### Shift JIS extension
 Many visual novel engines use Shift JIS (more specifically Microsoft code page 932) to encode text, meaning they can't display characters not supported by this code page. Even in English, though, there are words such as "café" that contain such unsupported characters.
 
 VNTextPatch offers a facility called "SJIS tunneling" for solving this problem. When patching a translation into a game file, it'll detect unsupported characters, replace them by unused SJIS code points (so they'll be accepted by the game), and store the mapping from the unused code point to the original character inside a separate file called "sjis_ext.bin". The proxy DLL (described in the section below) will then read this file, and whenever the game renders text on screen, replace any unused code points by their corresponding original character.
