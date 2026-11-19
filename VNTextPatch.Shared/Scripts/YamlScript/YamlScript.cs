@@ -115,7 +115,11 @@ namespace VNTextPatch.Shared.Scripts
                 }
             }
 
-            var existingFile = YamlScriptCollection.Load(location.ToFilePath())?.TryGetEntries(location.ScriptName);
+            List<YamlEntry>? existingFile = null;
+            if (location.Collection is YamlScriptCollection collection) 
+                existingFile = collection.TryGetEntries(location.ScriptName);
+            else 
+                existingFile = YamlScriptCollection.Load(location.ToFilePath())?.TryGetEntries(location.ScriptName);
             var newEntries = existingFile != null?
                 entries.Select((entry, i) => i<existingFile.Count? existingFile[i] : entry).ToList()
                 : entries;
