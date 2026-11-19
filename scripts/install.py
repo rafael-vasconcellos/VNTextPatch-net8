@@ -55,21 +55,21 @@ def detect_platform() -> tuple[str, str]:
     if system == "windows":
         if machine in {"amd64", "x86_64", "x64"}:
             return "win-x64", f"{EXECUTABLE_BASENAME}.exe"
-        fail(f"Arquitetura Windows não suportada: {platform.machine()}.")
+        fail(f"Unsupported Windows architecture: {platform.machine()}.")
 
     if system == "linux":
         if machine in {"x86_64", "amd64"}:
             return "linux-x64", EXECUTABLE_BASENAME
-        fail(f"Arquitetura Linux não suportada: {platform.machine()}.")
+        fail(f"Unsupported Linux architecture: {platform.machine()}.")
 
     if system == "darwin":
         if machine == "x86_64":
             return "osx-x64", EXECUTABLE_BASENAME
         if machine in {"arm64", "aarch64"}:
             return "osx-arm64", EXECUTABLE_BASENAME
-        fail(f"Arquitetura macOS não suportada: {platform.machine()}.")
+        fail(f"Unsupported macOS architecture: {platform.machine()}.")
 
-    fail(f"Sistema operacional não suportado: {platform.system()}.")
+    fail(f"Unsupported operating system: {platform.system()}.")
 
 
 def default_directories() -> tuple[Path, Path]:
@@ -87,42 +87,49 @@ def default_directories() -> tuple[Path, Path]:
 def parse_arguments() -> argparse.Namespace:
     default_root, default_bin = default_directories()
     parser = argparse.ArgumentParser(
-        description="Instala ou atualiza o VNTextPatch para a plataforma atual.",
+        description="Install or update VNTextPatch for the current platform.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Exemplos:\n"
+            "Examples:\n"
             "  python install_vntextpatch.py\n"
             "  python install_vntextpatch.py --version v1.0.100\n"
+            "  python install_vntextpatch.py --prerelease\n"
             "  python install_vntextpatch.py --install-root ~/apps/VNTextPatch\n"
             "  python install_vntextpatch.py --bin-dir ~/.local/bin\n\n"
-            "Variáveis de ambiente:\n"
-            "  VNTP_INSTALL_ROOT  Sobrescreve o diretório das versões.\n"
-            "  VNTP_BIN_DIR       Sobrescreve o diretório do comando."
+            "Environment variables:\n"
+            "  VNTP_INSTALL_ROOT  Overrides the versions directory.\n"
+            "  VNTP_BIN_DIR       Overrides the command directory."
         ),
     )
-    parser.add_argument("-v", "--version", help="Tag específica (ex.: v1.0.100).")
+    parser.add_argument("-v", "--version", help="Specific tag (e.g. v1.0.100).")
     parser.add_argument(
         "-i", "--install-root", "--install-dir",
-        help=f"Diretório das versões (padrão: {default_root}).",
+        help=f"Versions directory (default: {default_root}).",
     )
     parser.add_argument(
         "-b", "--bin-dir",
-        help=f"Diretório do comando VNTextPatch (padrão: {default_bin}).",
+        help=f"Directory for the VNTextPatch command (default: {default_bin}).",
+    )
+    parser.add_argument(
+        "--prerelease", action="store_true",
+        help="Install the newest release, including pre-releases (cannot be combined with --version).",
     )
     parser.add_argument(
         "--no-path", action="store_true",
-        help="Não altera o PATH persistente do usuário.",
+        help="Do not modify the user's persistent PATH.",
     )
     parser.add_argument(
         "positional_install_root", nargs="?",
-        help="Diretório de instalação (compatibilidade com o instalador anterior).",
+        help="Install directory (compatibility with the previous installer).",
     )
     args = parser.parse_args()
 
     if args.install_root and args.positional_install_root:
-        parser.error("use --install-root ou o argumento posicional, não ambos")
+        parser.error("use --install-root or the positional argument, not both")
+    if args.prerelease and args.version:
+        parser.error("--prerelease cannot be combined with --version")
     if args.version and not VERSION_PATTERN.fullmatch(args.version):
-        parser.error("tag de versão inválida")
+        parser.error("invalid version tag")
 
     root_value = (
         args.install_root
@@ -177,8 +184,14 @@ def open_with_retries(
     raise last_error
 
 
-def get_release(requested_version: str | None) -> dict[str, Any]:
-    url = f"{API_BASE}/tags/{urllib.parse.quote(requested_version, safe='')}" if requested_version else f"{API_BASE}/latest"
+def get_release(requested_version: str | None, include_prerelease: bool = False) -> dict[str, Any]:
+    if requested_version:
+        url = f"{API_BASE}/tags/{urllib.parse.quote(requested_version, safe='')}"
+    elif include_prerelease:
+        # /releases/latest ignores pre-releases, so list releases and pick the newest one.
+        url = f"{API_BASE}?per_page=30"
+    else:
+        url = f"{API_BASE}/latest"
     request = make_request(
         url,
         {
@@ -190,23 +203,33 @@ def get_release(requested_version: str | None) -> dict[str, Any]:
         with open_with_retries(request) as response:
             final = urllib.parse.urlsplit(response.geturl())
             if final.scheme != "https" or final.hostname != "api.github.com":
-                fail("A consulta da release foi redirecionada para um endereço não permitido.")
+                fail("The release query was redirected to a disallowed address.")
             payload = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            fail(f"A versão {requested_version!r} não foi encontrada no GitHub.")
-        fail(f"Falha ao consultar o GitHub (HTTP {exc.code}).")
+            fail(f"Version {requested_version!r} was not found on GitHub.")
+        fail(f"Failed to query GitHub (HTTP {exc.code}).")
     except (urllib.error.URLError, TimeoutError, socket.timeout, json.JSONDecodeError, UnicodeDecodeError) as exc:
-        fail(f"Não foi possível consultar os metadados da release: {exc}")
+        fail(f"Could not fetch release metadata: {exc}")
+
+    if include_prerelease and not requested_version:
+        if not isinstance(payload, list):
+            fail("The GitHub API returned invalid metadata.")
+        payload = next(
+            (item for item in payload if isinstance(item, dict) and not item.get("draft")),
+            None,
+        )
+        if payload is None:
+            fail("No releases were found on GitHub.")
 
     if not isinstance(payload, dict):
-        fail("A API do GitHub retornou metadados inválidos.")
+        fail("The GitHub API returned invalid metadata.")
 
     tag = payload.get("tag_name")
     if not isinstance(tag, str) or not VERSION_PATTERN.fullmatch(tag):
-        fail("A resposta do GitHub não contém uma tag de versão válida.")
+        fail("The GitHub response does not contain a valid version tag.")
     if requested_version and tag != requested_version:
-        fail(f"Foi solicitada a versão {requested_version}, mas o GitHub retornou {tag}.")
+        fail(f"Version {requested_version} was requested, but GitHub returned {tag}.")
     return payload
 
 
@@ -215,7 +238,7 @@ def validate_asset_url(url: str, tag: str, asset_name: str) -> None:
         parsed = urllib.parse.urlsplit(url)
         port = parsed.port
     except ValueError:
-        fail("URL do asset inválida.")
+        fail("Invalid asset URL.")
 
     expected_path = f"/{REPOSITORY}/releases/download/{tag}/{asset_name}"
     if (
@@ -228,7 +251,7 @@ def validate_asset_url(url: str, tag: str, asset_name: str) -> None:
         or parsed.fragment
         or urllib.parse.unquote(parsed.path) != expected_path
     ):
-        fail("URL do asset não corresponde ao endereço oficial esperado do GitHub.")
+        fail("The asset URL does not match the expected official GitHub address.")
 
 
 def validate_effective_url(url: str) -> None:
@@ -236,7 +259,7 @@ def validate_effective_url(url: str) -> None:
         parsed = urllib.parse.urlsplit(url)
         port = parsed.port
     except ValueError:
-        fail("URL final do download inválida.")
+        fail("Invalid final download URL.")
 
     allowed_hosts = {
         "github.com",
@@ -250,7 +273,7 @@ def validate_effective_url(url: str) -> None:
         or parsed.username is not None
         or parsed.password is not None
     ):
-        fail("O download foi redirecionado para um host não permitido.")
+        fail("The download was redirected to a disallowed host.")
 
 
 class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -269,7 +292,7 @@ def find_assets(release: dict[str, Any], platform_id: str, tag: str) -> tuple[st
     asset_name = f"VNTextPatch-{platform_id}-{tag}.zip"
     assets = release.get("assets")
     if not isinstance(assets, list):
-        fail("A release não contém uma lista válida de assets.")
+        fail("The release does not contain a valid asset list.")
 
     asset = next(
         (item for item in assets if isinstance(item, dict) and item.get("name") == asset_name),
@@ -281,15 +304,15 @@ def find_assets(release: dict[str, Any], platform_id: str, tag: str) -> tuple[st
             for item in assets
             if isinstance(item, dict) and isinstance(item.get("name"), str)
         )
-        available_text = ", ".join(available) if available else "nenhum asset"
+        available_text = ", ".join(available) if available else "no assets"
         fail(
-            f"A release {tag} não oferece o pacote {asset_name} para esta plataforma.\n"
-            f"Assets publicados: {available_text}"
+            f"Release {tag} does not offer the package {asset_name} for this platform.\n"
+            f"Published assets: {available_text}"
         )
 
     download_url = asset.get("browser_download_url")
     if not isinstance(download_url, str) or not download_url:
-        fail(f"A release {tag} não possui URL de download para {asset_name}.")
+        fail(f"Release {tag} has no download URL for {asset_name}.")
 
     digest = asset.get("digest")
     if not isinstance(digest, str):
@@ -332,38 +355,38 @@ def download_file(url: str, destination: Path) -> tuple[str, str]:
                 return digest.hexdigest(), effective_url
         except urllib.error.HTTPError as exc:
             destination.unlink(missing_ok=True)
-            fail(f"Falha no download (HTTP {exc.code}).")
+            fail(f"Download failed (HTTP {exc.code}).")
         except transfer_errors as exc:
             destination.unlink(missing_ok=True)
             if transfer_attempt >= MAX_RETRIES:
-                fail(f"Falha no download após {MAX_RETRIES + 1} tentativas: {exc}")
+                fail(f"Download failed after {MAX_RETRIES + 1} attempts: {exc}")
             time.sleep(transfer_attempt + 1)
         except OSError as exc:
             destination.unlink(missing_ok=True)
-            fail(f"Falha ao gravar o download em disco: {exc}")
+            fail(f"Failed to write the download to disk: {exc}")
 
-    fail("O download não foi concluído.")
+    fail("The download did not complete.")
 
 
 def read_expected_checksum(checksum_path: Path) -> str:
     try:
         content = checksum_path.read_text(encoding="utf-8", errors="strict")
     except (OSError, UnicodeDecodeError) as exc:
-        fail(f"Não foi possível ler o arquivo de checksum: {exc}")
+        fail(f"Could not read the checksum file: {exc}")
     matches = CHECKSUM_PATTERN.findall(content)
     if len(matches) != 1:
-        fail("O arquivo de checksum deve conter exatamente um hash SHA-256.")
+        fail("The checksum file must contain exactly one SHA-256 hash.")
     return matches[0].lower()
 
 
 def safe_zip_path(name: str, expected_root: str) -> PurePosixPath:
     if not name or "\\" in name or "\x00" in name or name.startswith("/"):
-        fail(f"Caminho inseguro no ZIP: {name!r}")
+        fail(f"Unsafe path in ZIP: {name!r}")
     path = PurePosixPath(name)
     if ".." in path.parts or not path.parts or path.parts[0] != expected_root:
-        fail(f"Entrada fora da pasta esperada no ZIP: {name!r}")
+        fail(f"Entry outside the expected folder in ZIP: {name!r}")
     if any(":" in part for part in path.parts):
-        fail(f"Caminho incompatível no ZIP: {name!r}")
+        fail(f"Incompatible path in ZIP: {name!r}")
     return path
 
 
@@ -377,34 +400,34 @@ def validate_and_extract(archive_path: Path, extract_dir: Path, expected_root: s
         with zipfile.ZipFile(archive_path, "r") as archive:
             members = archive.infolist()
             if not members:
-                fail("O ZIP está vazio.")
+                fail("The ZIP is empty.")
 
             for info in members:
                 name = info.filename
                 path = safe_zip_path(name, expected_root)
                 normalized_name = str(path)
                 if normalized_name in seen_names:
-                    fail(f"O ZIP contém uma entrada duplicada: {name!r}")
+                    fail(f"The ZIP contains a duplicate entry: {name!r}")
                 seen_names.add(normalized_name)
 
                 if info.flag_bits & 0x1:
-                    fail(f"Entrada criptografada não é permitida no ZIP: {name!r}")
+                    fail(f"Encrypted entries are not allowed in ZIP: {name!r}")
 
                 mode = (info.external_attr >> 16) & 0xFFFF
                 file_type = stat.S_IFMT(mode)
                 if stat.S_ISLNK(mode):
-                    fail(f"Links simbólicos não são permitidos no ZIP: {name!r}")
+                    fail(f"Symbolic links are not allowed in ZIP: {name!r}")
                 if file_type not in (0, stat.S_IFREG, stat.S_IFDIR):
-                    fail(f"Tipo especial não permitido no ZIP: {name!r}")
+                    fail(f"Special file type not allowed in ZIP: {name!r}")
                 if path == executable_member and not info.is_dir():
                     found_executable = True
 
             if not found_executable:
-                fail(f"O ZIP não contém {expected_root}/{executable_name}.")
+                fail(f"The ZIP does not contain {expected_root}/{executable_name}.")
 
             bad_member = archive.testzip()
             if bad_member is not None:
-                fail(f"CRC inválido no ZIP: {bad_member}")
+                fail(f"Invalid CRC in ZIP: {bad_member}")
 
             extract_dir.mkdir(parents=True, exist_ok=True)
             for info in members:
@@ -425,14 +448,14 @@ def validate_and_extract(archive_path: Path, extract_dir: Path, expected_root: s
                     destination.chmod(mode or 0o644)
 
     except zipfile.BadZipFile as exc:
-        fail(f"O arquivo baixado não é um ZIP íntegro: {exc}")
+        fail(f"The downloaded file is not a valid ZIP: {exc}")
     except (OSError, RuntimeError, NotImplementedError) as exc:
-        fail(f"Não foi possível validar ou extrair o ZIP: {exc}")
+        fail(f"Could not validate or extract the ZIP: {exc}")
 
     published_dir = extract_dir / expected_root
     executable_path = published_dir / executable_name
     if not published_dir.is_dir() or not executable_path.is_file() or executable_path.is_symlink():
-        fail("O executável não foi encontrado ou é inválido após a extração.")
+        fail("The executable was not found or is invalid after extraction.")
     return executable_path
 
 
@@ -462,9 +485,9 @@ def check_launcher_destination(launcher: Path, install_root: Path, executable_na
             try:
                 content = launcher.read_text(encoding="utf-8", errors="replace")
             except OSError:
-                fail(f"Já existe um arquivo em {launcher} e ele não pode ser verificado.")
+                fail(f"A file already exists at {launcher} and it cannot be verified.")
             if not content.startswith("@echo off\r\n" + WINDOWS_LAUNCHER_MARKER):
-                fail(f"{launcher} já existe e não parece pertencer a esta instalação. Não será sobrescrito.")
+                fail(f"{launcher} already exists and does not appear to belong to this installation. It will not be overwritten.")
         return
 
     if launcher.is_symlink():
@@ -472,15 +495,15 @@ def check_launcher_destination(launcher: Path, install_root: Path, executable_na
         try:
             relative = target.relative_to(install_root.resolve(strict=False))
         except ValueError:
-            fail(f"Já existe um link em {launcher} apontando para outra instalação: {target}")
+            fail(f"A link already exists at {launcher} pointing to another installation: {target}")
         if (
             len(relative.parts) != 2
             or not relative.parts[0].startswith("VNTextPatch-")
             or relative.parts[1] != executable_name
         ):
-            fail(f"Já existe um link em {launcher} apontando para outra instalação: {target}")
+            fail(f"A link already exists at {launcher} pointing to another installation: {target}")
     elif launcher.exists():
-        fail(f"{launcher} já existe e não é um link simbólico. Remova-o ou escolha outro --bin-dir.")
+        fail(f"{launcher} already exists and is not a symbolic link. Remove it or choose another --bin-dir.")
 
 
 def create_windows_launcher(launcher: Path, executable_path: Path) -> None:
@@ -551,11 +574,11 @@ def update_posix_shell_path(bin_dir: Path) -> str:
     config_dir.mkdir(parents=True, exist_ok=True)
     existing = config_file.read_text(encoding="utf-8") if config_file.exists() else ""
     if line in existing.splitlines():
-        return f"O PATH já está configurado em {config_file}. Abra um novo terminal."
+        return f"PATH is already configured in {config_file}. Open a new terminal."
 
     addition = f"\n{marker}\n{line}\n"
     config_file.write_text(existing.rstrip() + addition, encoding="utf-8")
-    return f"PATH configurado em {config_file}. Abra um novo terminal para aplicar a alteração."
+    return f"PATH configured in {config_file}. Open a new terminal to apply the change."
 
 
 def broadcast_windows_environment_change() -> None:
@@ -595,7 +618,7 @@ def update_windows_user_path(bin_dir: Path) -> str:
 
             current = current or ""
             if path_contains(bin_dir, current):
-                return "O diretório de instalação já está no PATH do usuário."
+                return "The install directory is already in the user PATH."
 
             updated = current.rstrip(";")
             updated = f"{updated};{bin_dir}" if updated else str(bin_dir)
@@ -604,22 +627,22 @@ def update_windows_user_path(bin_dir: Path) -> str:
             winreg.SetValueEx(key, "Path", 0, value_type, updated)
 
         broadcast_windows_environment_change()
-        return "PATH do usuário atualizado. Abra um novo terminal para usar o comando VNTextPatch."
+        return "User PATH updated. Open a new terminal to use the VNTextPatch command."
     except OSError as exc:
-        return f"Não foi possível atualizar o PATH do usuário automaticamente: {exc}"
+        return f"Could not update the user PATH automatically: {exc}"
 
 
 def ensure_user_path(bin_dir: Path) -> str:
     if path_contains(bin_dir):
-        return "O diretório do comando já está no PATH atual."
+        return "The command directory is already in the current PATH."
     try:
         if os.name == "nt":
             return update_windows_user_path(bin_dir)
         return update_posix_shell_path(bin_dir)
     except OSError as exc:
         return (
-            f"A instalação foi concluída, mas não foi possível configurar o PATH: {exc}\n"
-            f"Adicione manualmente este diretório ao PATH: {bin_dir}"
+            f"Installation completed, but PATH could not be configured: {exc}\n"
+            f"Add this directory to your PATH manually: {bin_dir}"
         )
 
 
@@ -630,9 +653,9 @@ def install(args: argparse.Namespace) -> int:
     install_root = args.install_root.absolute()
     bin_dir = args.bin_dir.absolute()
 
-    print(f"Plataforma detectada: {platform_id}")
-    print("Consultando releases do GitHub...")
-    release = get_release(tag_requested)
+    print(f"Detected platform: {platform_id}")
+    print("Querying GitHub releases...")
+    release = get_release(tag_requested, args.prerelease)
     tag = release["tag_name"]
     asset_name = f"VNTextPatch-{platform_id}-{tag}.zip"
     download_url, digest_field, checksum_url = find_assets(release, platform_id, tag)
@@ -645,8 +668,8 @@ def install(args: argparse.Namespace) -> int:
     if digest_from_api is None:
         if not checksum_url:
             fail(
-                f"O GitHub não forneceu o digest SHA-256 de {asset_name} nem o asset lateral "
-                f"{asset_name}.sha256. Nenhum arquivo foi instalado."
+                f"GitHub did not provide the SHA-256 digest for {asset_name} nor the "
+                f"{asset_name}.sha256 sidecar asset. Nothing was installed."
             )
         validate_asset_url(checksum_url, tag, asset_name + ".sha256")
 
@@ -672,12 +695,12 @@ def install(args: argparse.Namespace) -> int:
             or (os.name != "nt" and not os.access(executable_path, os.X_OK))
         ):
             fail(
-                f"Já existe um diretório para {tag}, mas ele não contém uma instalação executável válida: "
+                f"A directory for {tag} already exists, but it does not contain a valid executable installation: "
                 f"{version_dir}"
             )
         launcher = update_launcher(bin_dir, install_root, executable_path, executable_name)
-        print(f"VNTextPatch {tag} já estava instalado.")
-        print(f"Link/comando: {launcher} -> {executable_path}")
+        print(f"VNTextPatch {tag} was already installed.")
+        print(f"Link/command: {launcher} -> {executable_path}")
         if not args.no_path:
             print(ensure_user_path(bin_dir))
         return 0
@@ -691,22 +714,22 @@ def install(args: argparse.Namespace) -> int:
 
         if digest_from_api is None:
             checksum_path = temporary_dir / f"{asset_name}.sha256"
-            print("Baixando checksum SHA-256...")
+            print("Downloading SHA-256 checksum...")
             _, checksum_effective_url = download_file(checksum_url, checksum_path)
             validate_effective_url(checksum_effective_url)
             expected_digest = read_expected_checksum(checksum_path)
         else:
             expected_digest = digest_from_api
 
-        print(f"Baixando VNTextPatch {tag} ({asset_name})...")
+        print(f"Downloading VNTextPatch {tag} ({asset_name})...")
         actual_digest, effective_url = download_file(download_url, archive_path)
         validate_effective_url(effective_url)
         if actual_digest != expected_digest:
             fail(
-                f"Falha na verificação SHA-256 de {asset_name}. "
-                f"Esperado: {expected_digest}; obtido: {actual_digest}."
+                f"SHA-256 verification failed for {asset_name}. "
+                f"Expected: {expected_digest}; got: {actual_digest}."
             )
-        print("SHA-256 verificado.")
+        print("SHA-256 verified.")
 
         expected_root = f"VNTextPatch-{platform_id}"
         extracted_executable = validate_and_extract(
@@ -726,15 +749,15 @@ def install(args: argparse.Namespace) -> int:
         launcher = update_launcher(bin_dir, install_root, executable_path, executable_name)
         committed = True
 
-        print(f"VNTextPatch {tag} instalado com sucesso.")
-        print(f"Versão: {version_dir}")
-        print(f"Comando: {launcher}")
+        print(f"VNTextPatch {tag} installed successfully.")
+        print(f"Version: {version_dir}")
+        print(f"Command: {launcher}")
         if not args.no_path:
             print(ensure_user_path(bin_dir))
-        print(f"Execute: {LINK_NAME} --help")
+        print(f"Run: {LINK_NAME} --help")
         return 0
     except OSError as exc:
-        fail(f"Falha durante a instalação: {exc}")
+        fail(f"Installation failed: {exc}")
     finally:
         shutil.rmtree(temporary_dir, ignore_errors=True)
         if published and not committed:
@@ -747,13 +770,13 @@ def main() -> int:
     try:
         return install(args)
     except InstallerError as exc:
-        print(f"Erro: {exc}", file=sys.stderr)
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
     except OSError as exc:
-        print(f"Erro de acesso ao sistema de arquivos: {exc}", file=sys.stderr)
+        print(f"File system access error: {exc}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
-        print("\nInstalação cancelada.", file=sys.stderr)
+        print("\nInstallation cancelled.", file=sys.stderr)
         return 130
 
 

@@ -10,6 +10,8 @@ param(
     [Alias('v')]
     [string] $Version,
 
+    [switch] $Prerelease,
+
     [switch] $NoPath
 )
 
@@ -65,7 +67,7 @@ function Assert-AllowedUri {
         $Uri.UserInfo -or
         $Uri.Host -notin $AllowedHosts
     ) {
-        Stop-Install "Endereço HTTPS não permitido: $($Uri.GetLeftPart([UriPartial]::Authority))"
+        Stop-Install "HTTPS address not allowed: $($Uri.GetLeftPart([UriPartial]::Authority))"
     }
 }
 
@@ -111,7 +113,7 @@ function Get-ValidatedHttpResponse {
                         $retryRequest = $true
                         break
                     }
-                    Stop-Install "Falha na requisição HTTPS: $($_.Exception.Message)"
+                    Stop-Install "HTTPS request failed: $($_.Exception.Message)"
                 }
             }
 
@@ -120,10 +122,10 @@ function Get-ValidatedHttpResponse {
                 $location = $response.Headers['Location']
                 $response.Close()
                 if (-not $location) {
-                    Stop-Install "O servidor retornou HTTP $statusCode sem endereço de redirecionamento."
+                    Stop-Install "The server returned HTTP $statusCode without a redirect location."
                 }
                 if ($redirect -ge 5) {
-                    Stop-Install 'O download excedeu o limite de redirecionamentos.'
+                    Stop-Install 'The download exceeded the redirect limit.'
                 }
                 $currentUri = [Uri]::new($currentUri, $location)
                 continue
@@ -137,18 +139,18 @@ function Get-ValidatedHttpResponse {
                     $retryRequest = $true
                     break
                 }
-                Stop-Install "A requisição ao GitHub falhou (HTTP $statusCode)."
+                Stop-Install "The GitHub request failed (HTTP $statusCode)."
             }
 
             return $response
         }
 
         if (-not $retryRequest) {
-            Stop-Install 'Não foi possível concluir a requisição HTTPS.'
+            Stop-Install 'Could not complete the HTTPS request.'
         }
     }
 
-    Stop-Install 'A requisição HTTPS falhou após várias tentativas.'
+    Stop-Install 'The HTTPS request failed after several attempts.'
 }
 
 function Get-ResponseText {
@@ -169,10 +171,17 @@ function Get-ResponseText {
 }
 
 function Get-GitHubRelease {
-    param([string] $RequestedVersion)
+    param(
+        [string] $RequestedVersion,
+        [switch] $IncludePrerelease
+    )
 
     if ($RequestedVersion) {
         $endpoint = "$($script:ApiBase)/tags/$([Uri]::EscapeDataString($RequestedVersion))"
+    }
+    elseif ($IncludePrerelease) {
+        # /releases/latest ignores pre-releases, so list releases and pick the newest one.
+        $endpoint = "$($script:ApiBase)?per_page=30"
     }
     else {
         $endpoint = "$($script:ApiBase)/latest"
@@ -186,22 +195,28 @@ function Get-GitHubRelease {
             -Headers @{ 'X-GitHub-Api-Version' = '2022-11-28' }
         $json = Get-ResponseText -Response $response
         $release = ConvertFrom-Json -InputObject $json
+        if ($IncludePrerelease -and -not $RequestedVersion) {
+            $release = $release | Where-Object { $_ -and -not $_.draft } | Select-Object -First 1
+            if (-not $release) {
+                Stop-Install 'No releases were found on GitHub.'
+            }
+        }
     }
     catch {
         if ($RequestedVersion -and $_.Exception.Message -match 'HTTP 404') {
-            Stop-Install "A versão '$RequestedVersion' não foi encontrada no GitHub."
+            Stop-Install "Version '$RequestedVersion' was not found on GitHub."
         }
         throw
     }
 
     if (-not $release -or $release.tag_name -isnot [string]) {
-        Stop-Install 'A API do GitHub retornou metadados de release inválidos.'
+        Stop-Install 'The GitHub API returned invalid release metadata.'
     }
     if ($release.tag_name -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
-        Stop-Install 'A API retornou uma tag de versão inválida.'
+        Stop-Install 'The API returned an invalid version tag.'
     }
     if ($RequestedVersion -and $release.tag_name -cne $RequestedVersion) {
-        Stop-Install "Foi solicitada a versão $RequestedVersion, mas o GitHub retornou $($release.tag_name)."
+        Stop-Install "Version $RequestedVersion was requested, but GitHub returned $($release.tag_name)."
     }
 
     return $release
@@ -215,7 +230,7 @@ function Assert-AssetUrl {
     )
 
     try { $parsed = [Uri]::new($Url) }
-    catch { Stop-Install 'A API retornou uma URL de download inválida.' }
+    catch { Stop-Install 'The API returned an invalid download URL.' }
 
     $expectedPath = "/$($script:Repository)/releases/download/$Tag/$AssetName"
     if (
@@ -227,7 +242,7 @@ function Assert-AssetUrl {
         $parsed.Fragment -or
         [Uri]::UnescapeDataString($parsed.AbsolutePath) -cne $expectedPath
     ) {
-        Stop-Install 'A URL do asset não corresponde ao endereço oficial esperado do GitHub.'
+        Stop-Install 'The asset URL does not match the expected official GitHub address.'
     }
 }
 
@@ -241,11 +256,11 @@ function Get-ReleaseAsset {
     $asset = @($Release.assets) | Where-Object { $_.name -ceq $assetName } | Select-Object -First 1
     if (-not $asset) {
         $available = @($Release.assets | ForEach-Object { $_.name } | Where-Object { $_ }) -join ', '
-        if (-not $available) { $available = 'nenhum asset' }
-        Stop-Install "A release $Tag não contém $assetName.`nAssets publicados: $available"
+        if (-not $available) { $available = 'no assets' }
+        Stop-Install "Release $Tag does not contain $assetName.`nPublished assets: $available"
     }
     if (-not $asset.browser_download_url) {
-        Stop-Install "A release $Tag não possui URL de download para $assetName."
+        Stop-Install "Release $Tag has no download URL for $assetName."
     }
 
     $checksumName = "$assetName.sha256"
@@ -317,7 +332,7 @@ function Save-RemoteFile {
                 Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
             }
             if ($attempt -ge $script:MaxRetries) {
-                Stop-Install "Falha no download após $($script:MaxRetries + 1) tentativas: $($_.Exception.Message)"
+                Stop-Install "Download failed after $($script:MaxRetries + 1) attempts: $($_.Exception.Message)"
             }
             Start-Sleep -Seconds ($attempt + 1)
         }
@@ -333,11 +348,11 @@ function Get-ExpectedChecksum {
     param([Parameter(Mandatory)][string] $Path)
 
     try { $content = [IO.File]::ReadAllText($Path, [Text.Encoding]::UTF8) }
-    catch { Stop-Install "Não foi possível ler o arquivo de checksum: $($_.Exception.Message)" }
+    catch { Stop-Install "Could not read the checksum file: $($_.Exception.Message)" }
 
     $matches = [regex]::Matches($content, '(?i)(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])')
     if ($matches.Count -ne 1) {
-        Stop-Install 'O arquivo de checksum deve conter exatamente um hash SHA-256.'
+        Stop-Install 'The checksum file must contain exactly one SHA-256 hash.'
     }
     return $matches[0].Value.ToLowerInvariant()
 }
@@ -361,7 +376,7 @@ function Expand-ValidatedArchive {
     try {
         $archive = [IO.Compression.ZipFile]::OpenRead($ArchivePath)
         if ($archive.Entries.Count -eq 0) {
-            Stop-Install 'O arquivo ZIP está vazio.'
+            Stop-Install 'The ZIP file is empty.'
         }
 
         foreach ($entry in $archive.Entries) {
@@ -373,7 +388,7 @@ function Expand-ValidatedArchive {
                 $name.StartsWith('/') -or
                 $name -match '^[A-Za-z]:'
             ) {
-                Stop-Install "Caminho inseguro no ZIP: '$name'."
+                Stop-Install "Unsafe path in ZIP: '$name'."
             }
 
             $isDirectory = $name.EndsWith('/')
@@ -384,19 +399,19 @@ function Expand-ValidatedArchive {
                 $parts[0] -cne $ExpectedRoot -or
                 @($parts | Where-Object { $_ -eq '' -or $_ -eq '.' -or $_ -eq '..' -or $_.Contains(':') }).Count -gt 0
             ) {
-                Stop-Install "Entrada fora da pasta esperada no ZIP: '$name'."
+                Stop-Install "Entry outside the expected folder in ZIP: '$name'."
             }
             if (-not $seen.Add($normalizedName)) {
-                Stop-Install "O ZIP contém uma entrada duplicada: '$name'."
+                Stop-Install "The ZIP contains a duplicate entry: '$name'."
             }
 
             $unixMode = ($entry.ExternalAttributes -shr 16) -band 0xFFFF
             $fileType = $unixMode -band 0xF000
             if ($fileType -eq 0xA000) {
-                Stop-Install "Links simbólicos não são permitidos no ZIP: '$name'."
+                Stop-Install "Symbolic links are not allowed in ZIP: '$name'."
             }
             if ($fileType -notin @(0, 0x8000, 0x4000)) {
-                Stop-Install "Tipo especial não permitido no ZIP: '$name'."
+                Stop-Install "Special file type not allowed in ZIP: '$name'."
             }
             if (-not $isDirectory -and $normalizedName -ceq $expectedExecutable) {
                 $foundExecutable = $true
@@ -404,7 +419,7 @@ function Expand-ValidatedArchive {
         }
 
         if (-not $foundExecutable) {
-            Stop-Install "O ZIP não contém $expectedExecutable."
+            Stop-Install "The ZIP does not contain $expectedExecutable."
         }
 
         foreach ($entry in $archive.Entries) {
@@ -415,7 +430,7 @@ function Expand-ValidatedArchive {
             $relativePath = [IO.Path]::Combine([string[]] $parts)
             $target = [IO.Path]::GetFullPath((Join-Path $Destination $relativePath))
             if (-not $target.StartsWith($destinationFull, [StringComparison]::OrdinalIgnoreCase)) {
-                Stop-Install "Entrada fora do diretório de extração: '$name'."
+                Stop-Install "Entry outside the extraction directory: '$name'."
             }
 
             if ($isDirectory) {
@@ -443,7 +458,7 @@ function Expand-ValidatedArchive {
         }
     }
     catch [System.IO.InvalidDataException] {
-        Stop-Install "O arquivo baixado não é um ZIP íntegro: $($_.Exception.Message)"
+        Stop-Install "The downloaded file is not a valid ZIP: $($_.Exception.Message)"
     }
     finally {
         if ($archive) { $archive.Dispose() }
@@ -452,15 +467,15 @@ function Expand-ValidatedArchive {
     $publishedDir = Join-Path $Destination $ExpectedRoot
     $executablePath = Join-Path $publishedDir $script:ExecutableName
     if (-not (Test-Path -LiteralPath $publishedDir -PathType Container)) {
-        Stop-Install "O ZIP não contém a pasta $ExpectedRoot."
+        Stop-Install "The ZIP does not contain the folder $ExpectedRoot."
     }
     if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) {
-        Stop-Install 'O executável Windows não foi encontrado após a extração.'
+        Stop-Install 'The Windows executable was not found after extraction.'
     }
 
     $attributes = [IO.File]::GetAttributes($executablePath)
     if (($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-        Stop-Install 'O executável extraído não pode ser um link ou ponto de nova análise.'
+        Stop-Install 'The extracted executable cannot be a link or reparse point.'
     }
 
     return $executablePath
@@ -472,18 +487,18 @@ function Test-ManagedLauncher {
     if (-not (Test-Path -LiteralPath $Path)) { return }
     $launcherAttributes = [IO.File]::GetAttributes($Path)
     if (($launcherAttributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-        Stop-Install "$Path é um link ou ponto de nova análise existente. Ele não será sobrescrito."
+        Stop-Install "$Path is an existing link or reparse point. It will not be overwritten."
     }
     if (Test-Path -LiteralPath $Path -PathType Container) {
-        Stop-Install "$Path já existe e é um diretório."
+        Stop-Install "$Path already exists and is a directory."
     }
 
     try { $content = [IO.File]::ReadAllText($Path) }
-    catch { Stop-Install "Já existe um arquivo em $Path e ele não pode ser verificado." }
+    catch { Stop-Install "A file already exists at $Path and it cannot be verified." }
 
     $expectedPrefix = "@echo off`r`n$($script:LauncherMarker)"
     if (-not $content.StartsWith($expectedPrefix, [StringComparison]::Ordinal)) {
-        Stop-Install "$Path já existe e não parece pertencer a esta instalação. Ele não será sobrescrito."
+        Stop-Install "$Path already exists and does not appear to belong to this installation. It will not be overwritten."
     }
 }
 
@@ -577,7 +592,7 @@ function Add-UserPath {
         if (-not (Test-PathContainsDirectory -Directory $Directory -PathValue $env:Path)) {
             $env:Path = "$Directory;$env:Path"
         }
-        return 'O diretório do VNTextPatch já está no PATH do usuário.'
+        return 'The VNTextPatch directory is already in the user PATH.'
     }
 
     $newPath = if ([string]::IsNullOrWhiteSpace($currentUserPath)) {
@@ -594,10 +609,10 @@ function Add-UserPath {
         if (-not (Test-PathContainsDirectory -Directory $Directory -PathValue $env:Path)) {
             $env:Path = "$Directory;$env:Path"
         }
-        return 'PATH do usuário atualizado. Abra um novo terminal para usar VNTextPatch.'
+        return 'User PATH updated. Open a new terminal to use VNTextPatch.'
     }
     catch {
-        return "A instalação foi concluída, mas não foi possível atualizar o PATH do usuário: $($_.Exception.Message)`nAdicione manualmente este diretório ao PATH: $Directory"
+        return "Installation completed, but the user PATH could not be updated: $($_.Exception.Message)`nAdd this directory to your PATH manually: $Directory"
     }
 }
 
@@ -614,11 +629,14 @@ function Invoke-Installer {
     $architecture = $env:PROCESSOR_ARCHITEW6432
     if (-not $architecture) { $architecture = $env:PROCESSOR_ARCHITECTURE }
     if ($architecture -notin @('AMD64', 'x86_64')) {
-        Stop-Install "Esta release é win-x64, mas a arquitetura detectada é '$architecture'."
+        Stop-Install "This release is win-x64, but the detected architecture is '$architecture'."
     }
 
+    if ($Prerelease -and $Version) {
+        Stop-Install '-Prerelease cannot be combined with -Version.'
+    }
     if ($Version -and $Version -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
-        Stop-Install "Tag de versão inválida: $Version"
+        Stop-Install "Invalid version tag: $Version"
     }
 
     $defaults = Get-DefaultDirectories
@@ -632,9 +650,9 @@ function Invoke-Installer {
     $root = [IO.Path]::GetFullPath($root)
     $bin = [IO.Path]::GetFullPath($bin)
 
-    Write-Host 'Plataforma detectada: win-x64'
-    Write-Host 'Consultando releases do GitHub...'
-    $release = Get-GitHubRelease -RequestedVersion $Version
+    Write-Host 'Detected platform: win-x64'
+    Write-Host 'Querying GitHub releases...'
+    $release = Get-GitHubRelease -RequestedVersion $Version -IncludePrerelease:$Prerelease
     $tag = [string] $release.tag_name
     $asset = Get-ReleaseAsset -Release $release -Tag $tag
     Assert-AssetUrl -Url $asset.Url -Tag $tag -AssetName $asset.Name
@@ -644,7 +662,7 @@ function Invoke-Installer {
         $expectedDigest = $Matches[1].ToLowerInvariant()
     }
     elseif (-not $asset.ChecksumUrl) {
-        Stop-Install "O GitHub não forneceu o digest SHA-256 de $($asset.Name) nem um asset lateral .sha256. Nenhum arquivo foi instalado."
+        Stop-Install "GitHub did not provide the SHA-256 digest for $($asset.Name) nor a .sha256 sidecar asset. Nothing was installed."
     }
     elseif ($asset.ChecksumUrl) {
         Assert-AssetUrl -Url $asset.ChecksumUrl -Tag $tag -AssetName ($asset.Name + '.sha256')
@@ -657,23 +675,23 @@ function Invoke-Installer {
     if (Test-Path -LiteralPath $versionDirectory) {
         $versionAttributes = [IO.File]::GetAttributes($versionDirectory)
         if (($versionAttributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            Stop-Install "O diretório da versão $tag é um link ou ponto de nova análise."
+            Stop-Install "The directory for version $tag is a link or reparse point."
         }
         $existingExe = Join-Path $versionDirectory $script:ExecutableName
         if (
             -not (Test-Path -LiteralPath $versionDirectory -PathType Container) -or
             -not (Test-Path -LiteralPath $existingExe -PathType Leaf)
         ) {
-            Stop-Install "Já existe um diretório para $tag, mas ele não contém uma instalação válida: $versionDirectory"
+            Stop-Install "A directory for $tag already exists, but it does not contain a valid installation: $versionDirectory"
         }
         $existingAttributes = [IO.File]::GetAttributes($existingExe)
         if (($existingAttributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            Stop-Install "O executável existente para $tag não é um arquivo regular."
+            Stop-Install "The existing executable for $tag is not a regular file."
         }
 
         $launcher = Set-Launcher -BinDirectory $bin -ExecutablePath $existingExe
-        Write-Host "VNTextPatch $tag já estava instalado."
-        Write-Host "Comando: $launcher"
+        Write-Host "VNTextPatch $tag was already installed."
+        Write-Host "Command: $launcher"
         if (-not $NoPath) { Write-Host (Add-UserPath -Directory $bin) }
         return
     }
@@ -689,18 +707,18 @@ function Invoke-Installer {
 
         if (-not $expectedDigest) {
             $checksumPath = Join-Path $staging ($asset.Name + '.sha256')
-            Write-Host 'Baixando checksum SHA-256...'
+            Write-Host 'Downloading SHA-256 checksum...'
             Save-RemoteFile -Url $asset.ChecksumUrl -Destination $checksumPath
             $expectedDigest = Get-ExpectedChecksum -Path $checksumPath
         }
 
-        Write-Host "Baixando VNTextPatch $tag ($($asset.Name))..."
+        Write-Host "Downloading VNTextPatch $tag ($($asset.Name))..."
         Save-RemoteFile -Url $asset.Url -Destination $archivePath
         $actualDigest = Get-Sha256 -Path $archivePath
         if ($actualDigest -cne $expectedDigest) {
-            Stop-Install "Falha na verificação SHA-256. Esperado: $expectedDigest; obtido: $actualDigest."
+            Stop-Install "SHA-256 verification failed. Expected: $expectedDigest; got: $actualDigest."
         }
-        Write-Host 'SHA-256 verificado.'
+        Write-Host 'SHA-256 verified.'
 
         $expectedRoot = 'VNTextPatch-win-x64'
         [void] (Expand-ValidatedArchive -ArchivePath $archivePath -Destination $extractDirectory -ExpectedRoot $expectedRoot)
@@ -715,11 +733,11 @@ function Invoke-Installer {
         $launcher = Set-Launcher -BinDirectory $bin -ExecutablePath $executablePath
         $committed = $true
 
-        Write-Host "VNTextPatch $tag instalado com sucesso."
-        Write-Host "Versão: $versionDirectory"
-        Write-Host "Comando: $launcher"
+        Write-Host "VNTextPatch $tag installed successfully."
+        Write-Host "Version: $versionDirectory"
+        Write-Host "Command: $launcher"
         if (-not $NoPath) { Write-Host (Add-UserPath -Directory $bin) }
-        Write-Host 'Execute: VNTextPatch --help'
+        Write-Host 'Run: VNTextPatch --help'
     }
     finally {
         if (Test-Path -LiteralPath $staging) {
@@ -735,6 +753,6 @@ try {
     Invoke-Installer
 }
 catch {
-    [Console]::Error.WriteLine("Erro: $($_.Exception.Message)")
+    [Console]::Error.WriteLine("Error: $($_.Exception.Message)")
     throw $_.Exception
 }

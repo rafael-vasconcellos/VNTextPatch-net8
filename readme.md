@@ -4,7 +4,6 @@ A tool for extracting original text from, and patching translated text into, a v
 
 Original repo: [arcusmaximus/VNTranslationTools](https://github.com/arcusmaximus/VNTranslationTools)  
 Base fork: [hentaitaku/VNTranslationTools](https://github.com/hentaitaku/VNTranslationTools)  
-WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web](https://github.com/rafael-vasconcellos/VNTextPatch-web)
 
 ## Table of Contents
 
@@ -46,13 +45,19 @@ WIP WebUI based on the Web Assembly build: [rafael-vasconcellos/VNTextPatch-web]
 
 ### Installing a published release
 
-The installation scripts download the platform-specific archive from the latest GitHub release. Installations are placed in a versioned subdirectory; existing versions are not overwritten.
+The installation scripts download the platform-specific archive from the latest stable GitHub release (pre-releases are skipped unless you opt in with `-Prerelease` / `--prerelease`). Installations are placed in a versioned subdirectory; existing versions are not overwritten.
 
 #### Windows PowerShell
 Run it directly from the repository without cloning it:
 
 ```powershell
 irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.ps1 | iex
+```
+
+Installing the **latest pre-release** (cannot be combined with `-Version`):
+
+```powershell
+irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.ps1 | pwsh -NoProfile -File - -Prerelease
 ```
 
 Installing specific version:
@@ -86,6 +91,17 @@ Or (powershell only)
 
 ```powershell
 irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.py | py -
+```
+
+Installing the **latest pre-release** (cannot be combined with `--version`):
+```bash
+curl -fsSL https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.py | python - --prerelease
+```
+
+Or (powershell only)
+
+```powershell
+irm https://raw.githubusercontent.com/rafael-vasconcellos/VNTextPatch-net8/master/scripts/install.py | py - --prerelease
 ```
 
 Installing specific version:
