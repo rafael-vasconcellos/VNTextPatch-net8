@@ -131,14 +131,14 @@ namespace VNTextPatch
                 Inserter inserter;
                 if (inputLocation.ScriptName != null)
                 {
-                    ScriptLocation outputLocation = ScriptLocation.FromFilePath(outputPath, options.Format);
+                    ScriptLocation outputLocation = CreateOutputLocation(inputLocation, outputPath);
                     inserter = new Inserter(inputLocation.Collection, textLocation.Collection, outputLocation.Collection);
                     inserter.InsertOne(inputLocation.ScriptName, textLocation.ScriptName, outputLocation.ScriptName);
                 }
                 else
                 {
                     FolderScriptCollection inputCollection = (FolderScriptCollection)inputLocation.Collection;
-                    FolderScriptCollection outputCollection = new FolderScriptCollection(outputPath, inputCollection.Extension, options.Format);
+                    FolderScriptCollection outputCollection = inputCollection.CreateSibling(outputPath);
                     inserter = new Inserter(inputCollection, textLocation.Collection, outputCollection);
                     inserter.InsertAll();
                 }
@@ -192,14 +192,14 @@ namespace VNTextPatch
             if (inputLocation.ScriptName != null)
             {
                 textScriptName = Path.GetFileNameWithoutExtension(inputPath);
-                ScriptLocation outputLocation = ScriptLocation.FromFilePath(outputPath, options.Format);
+                ScriptLocation outputLocation = CreateOutputLocation(inputLocation, outputPath);
                 inserter = new Inserter(inputLocation.Collection, textCollection, outputLocation.Collection);
                 inserter.InsertOne(inputLocation.ScriptName, textScriptName, outputLocation.ScriptName);
             }
             else
             {
                 FolderScriptCollection inputCollection = (FolderScriptCollection)inputLocation.Collection;
-                FolderScriptCollection outputCollection = new FolderScriptCollection(outputPath, inputCollection.Extension, options.Format);
+                FolderScriptCollection outputCollection = inputCollection.CreateSibling(outputPath);
                 inserter = new Inserter(inputCollection, textCollection, outputCollection);
                 inserter.InsertAll();
             }
@@ -209,6 +209,20 @@ namespace VNTextPatch
                 File.WriteAllBytes(sjisExtPath, sjisExtContent);
 
             inserter.PrintStatistics();
+        }
+
+        private static ScriptLocation CreateOutputLocation(
+            ScriptLocation inputLocation, string outputPath)
+        {
+            if (inputLocation.Collection is not FolderScriptCollection inputCollection)
+                throw new InvalidOperationException("File-based insertion requires a folder-backed input collection.");
+
+            string outputDirectory = Path.GetDirectoryName(outputPath) ??
+                throw new InvalidOperationException($"Could not determine output directory for {outputPath}.");
+
+            Directory.CreateDirectory(outputDirectory);
+            FolderScriptCollection outputCollection = inputCollection.CreateSibling(outputDirectory);
+            return new ScriptLocation(outputCollection, Path.GetFileName(outputPath));
         }
 
         private static ScriptLocation GetLocalTextScriptLocation(ScriptLocation inputLocation, string textPath)
@@ -223,7 +237,7 @@ namespace VNTextPatch
                     Path.GetExtension(firstFilePath).ToLower() :
                     "." + GlobalVariables.OutputFormat;
 
-                FolderScriptCollection collection = new FolderScriptCollection(textPath, extension);
+                FolderScriptCollection collection = FolderScriptCollection.Create(textPath, extension);
                 return new ScriptLocation(collection: collection, scriptName: null);
             }
 
@@ -271,7 +285,9 @@ namespace VNTextPatch
                     Console.WriteLine($"Folder {path} is empty");
                     return false;
                 }
-                IScriptCollection collection = new FolderScriptCollection(path, Path.GetExtension(firstFilePath), format);
+                FolderScriptCollection collection = FolderScriptCollection.Create(
+                    path, Path.GetExtension(firstFilePath), format);
+
                 location = new ScriptLocation(collection: collection, scriptName: null);
                 return true;
             }
