@@ -278,6 +278,14 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             return _commandIds.TryGetValue(name, out uint id) ? GetCommand(id) : null;
         }
 
+        public YurisCompilerParameter? GetParameter(string commandName, int parameterIndex)
+        {
+            if (parameterIndex < 0)
+                return null;
+
+            return GetCommand(commandName)?.Parameters.ElementAtOrDefault(parameterIndex);
+        }
+
         public bool TryGetSystemVariableId(string name, out uint variableId)
         {
             return _systemVariableIds.TryGetValue(name, out variableId);
@@ -507,7 +515,8 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 if (length > 0 && length <= 64 && IsAsciiIdentifier(data, offset, length))
                 {
                     string value = Encoding.ASCII.GetString(data, offset, length);
-                    bool setting = value.Any(char.IsAsciiLetterUpper);
+                    bool setting = value.Any(character =>
+                        character >= 'A' && character <= 'Z');
 
                     if (setting)
                     {
