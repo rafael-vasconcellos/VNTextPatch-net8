@@ -9,15 +9,6 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 {
     public class YurisScenarioScript : IScript
     {
-        private static class ExpressionOpcodes
-        {
-            public const byte PerformVarIndexation = 0x29;
-            public const byte Add = 0x2B;
-            public const byte PushString = 0x4D;
-            public const byte PrepareVarIndexation = 0x56;
-            public const byte PushInt16 = 0x57;
-        }
-
         private string? _lastFolderPath;
         private YurisCommandList? _commandList;
         private byte _wordCommandId;
@@ -301,91 +292,15 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
                 case YurisAttributeType.Expression:
                 {
-                    return EvaluatePushStringExpression(attr) ??
-                           EvaluateChrExpression(attr);
+                    return YurisExpressionInterpreter.TryEvaluate(
+                        _data, attr.ValueOffset, attr.ValueLength, out string? value)
+                        ? value
+                        : null;
                 }
 
                 default:
                     return null;
             }
-        }
-
-        private string? EvaluatePushStringExpression(in YurisAttribute attr)
-        {
-            // We expect expression bytecode of the form:
-            // 4D           pushstring opcode
-            // XX XX        argument length
-            // 22 ... 22    quoted string (could also be 27 ... 27)
-            if (attr.ValueLength < 3)
-                return null;
-
-            byte opcode = _data[attr.ValueOffset];
-            if (opcode != ExpressionOpcodes.PushString)
-                return null;
-
-            int argLength = BitConverter.ToUInt16(_data, attr.ValueOffset + 1);
-            if (3 + argLength != attr.ValueLength)
-                return null;
-
-            string str = StringUtil.SjisEncoding.GetString(_data, attr.ValueOffset + 3, argLength);
-            str = UnquoteString(str);
-            str = Regex.Replace(str, @"(?<!\r)\n", "\r\n");
-            return str;
-        }
-
-        private string? EvaluateChrExpression(in YurisAttribute attr)
-        {
-            // Expecting the following bytecode:
-            // 56 03 00 24 XX XX        preparevarindexation $_CHR
-            // 57 02 00 EF 00           pushint16 0xEF
-            // 29 01 00 00              performvarindexation
-            // 
-            // 56 03 00 24 XX XX        preparevarindexation $_CHR
-            // 57 02 00 XX XX           pushint16 0xXX
-            // 29 01 00 00              performvarindexation
-            // 
-            // 2B 00 00                 add
-            // ... (potentially further indexations/adds, always in pairs [0xEF 0xXX] where 0xEF indicates a control code)
-
-            const int indexationSize = 15;
-            const int addSize = 3;
-            if (attr.ValueLength < indexationSize * 2 + addSize || (attr.ValueLength - indexationSize) % ((indexationSize + addSize) * 2) != indexationSize + addSize)
-                return null;
-
-            byte[] controlCodes = new byte[1 + (attr.ValueLength - indexationSize) / (indexationSize + addSize)];
-            int offset = attr.ValueOffset;
-            short chrVarIdx = BitConverter.ToInt16(_data, offset + 4);
-            for (int i = 0; i < controlCodes.Length; i++)
-            {
-                ushort? codepoint = GetExpressionIndex(offset, chrVarIdx);
-                if (codepoint == null || codepoint > 0xFF || (i % 2 == 0 && codepoint != 0xEF))
-                    return null;
-
-                controlCodes[i] = (byte)codepoint;
-                offset += indexationSize;
-                if (i > 0)
-                {
-                    if (_data[offset] != ExpressionOpcodes.Add)
-                        return null;
-
-                    offset += addSize;
-                }
-            }
-
-            YurisControlCodesToStandard(controlCodes, 0, controlCodes.Length);
-            return StringUtil.SjisEncoding.GetString(controlCodes);
-        }
-
-        private ushort? GetExpressionIndex(int offset, short expectedVarIdx)
-        {
-            if (_data[offset + 0] == ExpressionOpcodes.PrepareVarIndexation &&
-                BitConverter.ToInt16(_data, offset + 4) == expectedVarIdx &&
-                _data[offset + 6] == ExpressionOpcodes.PushInt16 &&
-                _data[offset + 11] == ExpressionOpcodes.PerformVarIndexation)
-            {
-                return BitConverter.ToUInt16(_data, offset + 9);
-            }
-            return null;
         }
 
         private static byte[] SerializeAttributeValue(in YurisAttribute attr, string value)
