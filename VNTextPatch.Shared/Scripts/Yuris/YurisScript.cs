@@ -21,6 +21,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                                "YSTB" => new YurisScenarioScript(),
                                "YSCF" => new YurisConfigScript(),
                                "YSTL" => new YurisScriptList(),
+                               "YSVR" => new YurisVariableScript(),
                                _ => null
                            };
             _innerScript?.Load(location);
