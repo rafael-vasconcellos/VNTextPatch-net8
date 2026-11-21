@@ -200,7 +200,7 @@ namespace VNTextPatch
             else
             {
                 FolderScriptCollection inputCollection = (FolderScriptCollection)inputLocation.Collection;
-                FolderScriptCollection outputCollection = new FolderScriptCollection(outputPath, inputCollection.Extension, options.Format);
+                FolderScriptCollection outputCollection = inputCollection.CreateSibling(outputPath);
                 inserter = new Inserter(inputCollection, textCollection, outputCollection);
                 inserter.InsertAll();
             }
@@ -272,13 +272,16 @@ namespace VNTextPatch
                     Console.WriteLine($"Folder {path} is empty");
                     return false;
                 }
-                var collection = new FolderScriptCollection(path, Path.GetExtension(firstFilePath), format);
+                string yurisIndexPath = Path.Combine(path, "yst_list.ybn");
+                string inputExtension = File.Exists(yurisIndexPath)
+                    ? ".ybn"
+                    : Path.GetExtension(firstFilePath);
+                var collection = new FolderScriptCollection(path, inputExtension, format);
 
                 // YU-RIS games may store compiled scripts as ystXXXXX.ybn
                 // while yst_list.ybn maps those files to their logical paths.
                 // Attach the index to the collection so extraction and insertion
                 // operate on logical paths but read/write the physical files.
-                string yurisIndexPath = Path.Combine(path, "yst_list.ybn");
                 if (collection.Extension.Equals(".ybn", StringComparison.OrdinalIgnoreCase) &&
                     File.Exists(yurisIndexPath))
                 {
