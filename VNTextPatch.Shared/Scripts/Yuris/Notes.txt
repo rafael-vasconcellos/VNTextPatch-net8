@@ -213,3 +213,33 @@ Each instruction consists of an opcode byte followed by a 16-bit argument length
 73 00 00                tostring
 76 03 00 24/40 XX XX    pusharrayvar (used to specify @ARRAY() in e.g. VARINFO in SEARCH mode)
 7C 00 00                logor
+
+=====================================
+Expression interpreter implementation
+=====================================
+YurisExpressionInterpreter currently evaluates only expressions whose result
+can be derived entirely from constants:
+
+Supported:
+    42 pushint8
+    46 pushdouble
+    49 pushint32
+    4C pushint64
+    4D pushstring
+    57 pushint16
+    2B add (numeric addition, string concatenation, or constant $_CHR bytes)
+    2D sub
+    2A mul
+    2F div
+    25 mod
+    52 changesign
+    69 tonumber
+    73 tostring
+    56 preparevarindexation + 29 performvarindexation
+       only for constant indices into the same variable, and only when
+       the resulting byte sequence contains recognized YU-RIS control codes.
+
+Expressions containing scalar/array variable reads, comparisons, logical
+operators, dynamic indices, unknown opcodes, malformed instructions, or
+non-string final values are intentionally not evaluated. They remain
+untranslated rather than being guessed or partially interpreted.
