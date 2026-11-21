@@ -74,7 +74,7 @@ namespace VNTextPatch.Shared.Scripts
             YurisScriptList? yurisScriptList = null)
         {
             if (!Directory.Exists(folderPath))
-                throw new DirectoryNotFoundException($"{$"{folderPath}"} does not exist");
+                throw new DirectoryNotFoundException($"{folderPath} does not exist");
 
             FolderPath = folderPath;
             Extension = extension ?? string.Empty;
@@ -115,7 +115,23 @@ namespace VNTextPatch.Shared.Scripts
         /// </summary>
         public FolderScriptCollection CreateSibling(string folderPath)
         {
-            return new FolderScriptCollection(folderPath, Extension, Format, _yurisScriptList);
+            var sibling = new FolderScriptCollection(folderPath, Extension, Format, _yurisScriptList);
+
+            // The index is required by the game to resolve logical script names.
+            // It is not part of the script-entry enumeration, so copy it explicitly.
+            if (_yurisScriptList != null)
+            {
+                string sourceIndex = Path.Combine(FolderPath, "yst_list.ybn");
+                string destinationIndex = Path.Combine(folderPath, "yst_list.ybn");
+
+                if (File.Exists(sourceIndex))
+                {
+                    Directory.CreateDirectory(folderPath);
+                    File.Copy(sourceIndex, destinationIndex, true);
+                }
+            }
+
+            return sibling;
         }
 
         /// <summary>
