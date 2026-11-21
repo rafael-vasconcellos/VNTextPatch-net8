@@ -18,12 +18,14 @@ using VNTextPatch.Shared.Scripts.SystemNnn;
 using VNTextPatch.Shared.Scripts.TmrHiroAdvSystem;
 using VNTextPatch.Shared.Scripts.Yuris;
 
-
 namespace VNTextPatch.Shared.Scripts
 {
     public class FolderScriptCollection : IScriptCollection
     {
         private static readonly IScript[] TemporaryScripts;
+
+        private YurisScriptList? _yurisScriptList;
+        private Dictionary<string, YurisScriptListEntry>? _yurisScriptEntries;
 
         static FolderScriptCollection()
         {
@@ -65,14 +67,95 @@ namespace VNTextPatch.Shared.Scripts
                 };
         }
 
-        public FolderScriptCollection(string folderPath, string? extension, string? format = null)
+        public FolderScriptCollection(
+            string folderPath,
+            string? extension,
+            string? format = null,
+            YurisScriptList? yurisScriptList = null)
         {
             if (!Directory.Exists(folderPath))
-                throw new DirectoryNotFoundException($"{folderPath} does not exist");
+                throw new DirectoryNotFoundException($"{$"{folderPath}"} does not exist");
 
             FolderPath = folderPath;
             Extension = extension ?? string.Empty;
             Format = format;
+
+            if (yurisScriptList != null)
+                SetYurisScriptIndex(yurisScriptList);
+        }
+
+        public void SetYurisScriptIndex(YurisScriptList scriptList)
+        {
+            if (!Extension.Equals(".ybn", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("A YSTL index can only be used with a .ybn script collection.");
+
+            var entries = new Dictionary<string, YurisScriptListEntry>(
+                OperatingSystem.IsWindows()
+                    ? StringComparer.OrdinalIgnoreCase
+                    : StringComparer.Ordinal);
+
+            foreach (YurisScriptListEntry entry in scriptList.Entries)
+            {
+                string key = NormalizeScriptName(entry.ScriptPath);
+                if (key.Length == 0)
+                    throw new InvalidDataException("YSTL contains an empty script path.");
+
+                if (!entries.TryAdd(key, entry))
+                    throw new InvalidDataException($"YSTL contains a duplicate script path: {entry.ScriptPath}");
+            }
+
+            _yurisScriptList = scriptList;
+            _yurisScriptEntries = entries;
+        }
+
+        /// <summary>
+        /// Creates another folder collection with the same file format and
+        /// YSTL mapping. Used by insertion so patched files retain their
+        /// physical ystXXXXX.ybn names.
+        /// </summary>
+        public FolderScriptCollection CreateSibling(string folderPath)
+        {
+            return new FolderScriptCollection(folderPath, Extension, Format, _yurisScriptList);
+        }
+
+        /// <summary>
+        /// Resolves a logical script path from YSTL to its compiled file.
+        /// Without an index, this is equivalent to Path.Combine(FolderPath, scriptName).
+        /// </summary>
+        public string GetFilePath(string scriptName)
+        {
+            string relativePath = scriptName;
+
+            if (_yurisScriptEntries != null)
+            {
+                string key = NormalizeScriptName(scriptName);
+                if (!_yurisScriptEntries.TryGetValue(key, out YurisScriptListEntry? entry))
+                    throw new FileNotFoundException($"Script '{scriptName}' is not listed in yst_list.ybn.");
+
+                relativePath = entry.GetCompiledFileName();
+            }
+
+            return Path.Combine(
+                FolderPath,
+                relativePath.Replace('/', Path.DirectorySeparatorChar)
+                            .Replace('\\', Path.DirectorySeparatorChar));
+        }
+
+        private static string NormalizeScriptName(string scriptName)
+        {
+            if (string.IsNullOrWhiteSpace(scriptName))
+                throw new InvalidDataException("YSTL contains an empty script path.");
+
+            string normalized = scriptName.Replace('\\', '/');
+            if (normalized.StartsWith("/", StringComparison.Ordinal) ||
+                (normalized.Length >= 2 && char.IsLetter(normalized[0]) && normalized[1] == ':'))
+                throw new InvalidDataException($"YSTL script path must be relative: {scriptName}");
+
+            string[] segments = normalized.Split('/');
+            if (segments.Any(segment => segment == ".."))
+                throw new InvalidDataException($"YSTL script path escapes the script folder: {scriptName}");
+
+            return string.Join("/", segments.Where(segment => segment.Length > 0 && segment != "."));
         }
 
         public IScript GetTemporaryScript()
@@ -98,6 +181,9 @@ namespace VNTextPatch.Shared.Scripts
         {
             get
             {
+                if (_yurisScriptList != null)
+                    return _yurisScriptList.Entries.Select(entry => entry.ScriptPath);
+
                 int folderPathLength = FolderPath.Length;
                 if (!Name.EndsWith("\\"))
                     folderPathLength++;
@@ -109,12 +195,23 @@ namespace VNTextPatch.Shared.Scripts
 
         public bool Exists(string scriptName)
         {
-            return File.Exists(Path.Combine(FolderPath, scriptName));
+            try
+            {
+                return File.Exists(GetFilePath(scriptName));
+            }
+            catch (FileNotFoundException)
+            {
+                return false;
+            }
+            catch (InvalidDataException)
+            {
+                return false;
+            }
         }
 
         public void Add(string scriptName)
         {
-            string filePath = Path.Combine(FolderPath, scriptName);
+            string filePath = GetFilePath(scriptName);
             var directoryName = Path.GetDirectoryName(filePath) ??
                 throw new Exception($"Couldn't find directory path from {filePath}");
             Directory.CreateDirectory(directoryName);
@@ -124,9 +221,9 @@ namespace VNTextPatch.Shared.Scripts
         public void Add(string scriptName, ScriptLocation copyFrom)
         {
             string sourceFilePath = copyFrom.ToFilePath();
-            string destFilePath = Path.Combine(FolderPath, copyFrom.ScriptName);
+            string destFilePath = GetFilePath(scriptName);
             var destDirectoryName = Path.GetDirectoryName(destFilePath) ??
-                throw new Exception($"Couldn't find directory path from {destFilePath}");;
+                throw new Exception($"Couldn't find directory path from {destFilePath}");
             Directory.CreateDirectory(destDirectoryName);
             File.Copy(sourceFilePath, destFilePath, true);
         }
@@ -155,6 +252,5 @@ namespace VNTextPatch.Shared.Scripts
         {
             get;
         }
-
     }
 }
