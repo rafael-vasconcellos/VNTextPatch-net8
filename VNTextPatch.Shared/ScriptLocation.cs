@@ -25,8 +25,8 @@ namespace VNTextPatch.Shared
 
         public string ToFilePath()
         {
-            if (Collection is FolderScriptCollection folder) 
-                return Path.Combine(folder.FolderPath, ScriptName);
+            if (Collection is FolderScriptCollection folder)
+                return folder.GetFilePath(ScriptName);
 
             //throw new InvalidOperationException();
             return Collection.Name;
