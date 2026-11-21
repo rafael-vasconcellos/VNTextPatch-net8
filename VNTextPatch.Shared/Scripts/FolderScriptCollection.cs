@@ -60,7 +60,8 @@ namespace VNTextPatch.Shared.Scripts
                     new TmrHiroAdvSystemCodeScript(),
                     new TmrHiroAdvSystemTextScript(),
                     new WhaleScript(),
-                    new YurisScript()
+                    new YurisScript(),
+                    new YurisCompilerDefinitionScript()
                 };
         }
 
