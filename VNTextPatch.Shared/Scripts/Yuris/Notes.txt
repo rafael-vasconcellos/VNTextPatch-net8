@@ -243,3 +243,63 @@ Expressions containing scalar/array variable reads, comparisons, logical
 operators, dynamic indices, unknown opcodes, malformed instructions, or
 non-string final values are intentionally not evaluated. They remain
 untranslated rather than being guessed or partially interpreted.
+
+=====================================
+YSVR parser implementation (ysv.ybn)
+=====================================
+YurisVariableScript parses YSVR records and exposes their original metadata.
+
+Two observed record headers are supported:
+    WithFlag:
+        byte scope
+        byte flag
+        short scriptId
+        short variableIndex
+        byte valueType
+        byte dimensionCount
+    WithoutFlag:
+        byte scope
+        short scriptId
+        short variableIndex
+        byte valueType
+        byte dimensionCount
+
+The complete record stream is validated before a layout is accepted.
+Known versions include a no-flag 7-byte header in a v474 sample and a
+with-flag 8-byte header in v495/v555 samples. Version is only a tie-breaker
+when both interpretations are structurally valid.
+
+Scope:
+    1 = global
+    2 = local (associated with scriptId)
+    3 = static
+
+Value type:
+    0 = declaration without initializer
+    1 = Int64 initial value
+    2 = Double initial value
+    3 = length-prefixed expression bytecode
+
+String expression bytes are preserved. EvaluatedStringValue is populated
+only when the existing constant-expression interpreter can safely evaluate
+the entire expression. Dynamic expressions are not modified or guessed.
+
+=====================================
+YSCD parser implementation (YSCom.ycd)
+=====================================
+YurisCompilerDefinitionScript parses the compiler language definition file:
+    Header: YSCD, version, commandCount, unknown/padding
+    Commands: NUL-terminated name, parameter count, parameter records
+    Parameter: NUL-terminated name + four metadata bytes
+    System-variable section: count + reserved word + variable declarations
+
+Each system variable has a NUL-terminated name, value type, dimension count
+and dimension sizes. The declaration order is its zero-based system-variable ID.
+
+Command parameters preserve all four metadata bytes (Kind, Metadata1,
+Metadata2 and Checker). Placeholder command entries such as ");" are retained
+in Commands and excluded from ExecutableCommands.
+
+Compiler settings, keywords and error-message strings are exposed as optional
+metadata. DefinitionMetadata and TrailingData preserve the original unparsed
+regions. The parser does not emit translation strings and never rewrites YSCD.
