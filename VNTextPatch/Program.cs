@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using VNTextPatch.Shared;
 using VNTextPatch.Shared.Scripts;
 using VNTextPatch.Shared.Util;
+using VNTextPatch.Shared.Scripts.Yuris;
 
 namespace VNTextPatch
 {
@@ -138,7 +139,7 @@ namespace VNTextPatch
                 else
                 {
                     FolderScriptCollection inputCollection = (FolderScriptCollection)inputLocation.Collection;
-                    FolderScriptCollection outputCollection = new FolderScriptCollection(outputPath, inputCollection.Extension, options.Format);
+                    FolderScriptCollection outputCollection = inputCollection.CreateSibling(outputPath);
                     inserter = new Inserter(inputCollection, textLocation.Collection, outputCollection);
                     inserter.InsertAll();
                 }
@@ -271,7 +272,21 @@ namespace VNTextPatch
                     Console.WriteLine($"Folder {path} is empty");
                     return false;
                 }
-                IScriptCollection collection = new FolderScriptCollection(path, Path.GetExtension(firstFilePath), format);
+                var collection = new FolderScriptCollection(path, Path.GetExtension(firstFilePath), format);
+
+                // YU-RIS games may store compiled scripts as ystXXXXX.ybn
+                // while yst_list.ybn maps those files to their logical paths.
+                // Attach the index to the collection so extraction and insertion
+                // operate on logical paths but read/write the physical files.
+                string yurisIndexPath = Path.Combine(path, "yst_list.ybn");
+                if (collection.Extension.Equals(".ybn", StringComparison.OrdinalIgnoreCase) &&
+                    File.Exists(yurisIndexPath))
+                {
+                    var yurisIndex = new YurisScriptList();
+                    yurisIndex.Load(new ScriptLocation(collection, "yst_list.ybn"));
+                    collection.SetYurisScriptIndex(yurisIndex);
+                }
+
                 location = new ScriptLocation(collection: collection, scriptName: null);
                 return true;
             }
