@@ -41,12 +41,20 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             });
 
         private byte[]? _data;
+        private bool _hasCaption;
+        private ushort _captionLengthField;
 
         public string Extension => ".ybn";
 
         public bool SupportsStructuredData => _data != null;
 
         public uint Version { get; private set; }
+
+        /// <summary>
+        /// False for header-only YSCF variants where the final ushort does not
+        /// describe caption bytes. In that case the field is preserved verbatim.
+        /// </summary>
+        public bool HasCaption => _data != null && _hasCaption;
 
         public void Load(ScriptLocation location)
         {
@@ -57,6 +65,8 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         public void Parse(byte[] data)
         {
             _data = null;
+            _hasCaption = false;
+            _captionLengthField = 0;
 
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
@@ -70,11 +80,26 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             ushort captionLength = BinaryPrimitives.ReadUInt16LittleEndian(
                 data.AsSpan(CaptionLengthOffset, sizeof(ushort)));
 
-            if (data.Length != HeaderSize + captionLength)
+            // The documented YSCF V5 layout ends with a 16-bit caption length
+            // followed by that many Shift-JIS bytes. Some games contain only
+            // the fixed-size header, with a non-length value in this slot.
+            // Accept that exact header-only variant but preserve the slot and
+            // disable caption editing instead of guessing its meaning.
+            if (data.Length == HeaderSize)
+            {
+                _hasCaption = captionLength == 0;
+                _captionLengthField = captionLength;
+            }
+            else if (data.Length == HeaderSize + captionLength)
+            {
+                _hasCaption = true;
+                _captionLengthField = captionLength;
+            }
+            else
             {
                 throw new InvalidDataException(
                     $"YSCF caption length is inconsistent: header says {captionLength} bytes, " +
-                    $"but the file contains {data.Length - HeaderSize} bytes.");
+                    $"but the file contains {data.Length - HeaderSize} bytes after the fixed header.");
             }
 
             Version = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(4, 4));
@@ -86,7 +111,8 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             if (_data == null)
                 yield break;
 
-            yield return new ScriptString(ReadCaption(_data), ScriptStringType.Message);
+            if (_hasCaption)
+                yield return new ScriptString(ReadCaption(_data), ScriptStringType.Message);
         }
 
         public void WritePatched(IEnumerable<ScriptString> strings, ScriptLocation location)
@@ -95,6 +121,16 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 throw new InvalidOperationException("YSCF has not been loaded.");
 
             List<ScriptString> entries = strings.ToList();
+            if (!_hasCaption)
+            {
+                if (entries.Count != 0)
+                    throw new InvalidDataException(
+                        "This header-only YSCF variant has no safely editable caption field.");
+
+                WriteOutput(location, (byte[])_data.Clone());
+                return;
+            }
+
             if (entries.Count != 1 || entries[0].Type != ScriptStringType.Message)
                 throw new InvalidDataException("Exactly one YSCF caption translation is expected.");
 
@@ -165,8 +201,27 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             PatchByteArray(root, header, "imageTypeSlots", 28, ImageTypeSlotCount);
             PatchByteArray(root, header, "soundTypeSlots", 36, SoundTypeSlotCount);
 
-            string caption = ReadOptionalString(root, "caption") ?? ReadCaption(_data);
-            byte[] output = BuildPatchedData(header, caption);
+            byte[] output;
+            if (_hasCaption)
+            {
+                string caption = ReadOptionalString(root, "caption") ?? ReadCaption(_data);
+                output = BuildPatchedData(header, caption);
+            }
+            else
+            {
+                // The 16-bit slot at 0x4C is not a valid caption length in this
+                // header-only variant. Keep it byte-for-byte unchanged.
+                JsonElement captionValue = root.TryGetProperty("caption", out JsonElement suppliedCaption)
+                    ? suppliedCaption
+                    : default;
+
+                if (captionValue.ValueKind is not JsonValueKind.Undefined and not JsonValueKind.Null)
+                    throw new InvalidDataException(
+                        "Caption editing is unavailable for this header-only YSCF variant.");
+
+                output = header;
+            }
+
             WriteOutput(destination, output);
         }
 
@@ -194,7 +249,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 FilePriorityDebug = ReadUInt32(data, 64),
                 FilePriorityRelease = ReadUInt32(data, 68),
                 Unknown1 = ReadUInt32(data, 72),
-                Caption = ReadCaption(data)
+                HasCaption = _hasCaption,
+                CaptionLengthField = _captionLengthField,
+                Caption = _hasCaption ? ReadCaption(data) : null
             };
         }
 
@@ -326,6 +383,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         {
             ushort length = BinaryPrimitives.ReadUInt16LittleEndian(
                 data.AsSpan(CaptionLengthOffset, sizeof(ushort)));
+            if (data.Length != HeaderSize + length)
+                throw new InvalidDataException("YSCF caption is unavailable for this layout.");
+
             return StringUtil.SjisEncoding.GetString(data, HeaderSize, length);
         }
 
@@ -372,7 +432,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             public uint FilePriorityDebug { get; set; }
             public uint FilePriorityRelease { get; set; }
             public uint Unknown1 { get; set; }
-            public string Caption { get; set; } = string.Empty;
+            public bool HasCaption { get; set; }
+            public ushort CaptionLengthField { get; set; }
+            public string? Caption { get; set; }
         }
 
         [JsonSourceGenerationOptions(
