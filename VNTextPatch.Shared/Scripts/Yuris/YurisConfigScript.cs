@@ -11,15 +11,23 @@ using VNTextPatch.Shared.Util;
 
 namespace VNTextPatch.Shared.Scripts.Yuris
 {
+    public enum YurisConfigLayout
+    {
+        V2,
+        V5
+    }
+
     /// <summary>
     /// Parser and structured editor for YU-RIS project configuration (YSCF,
     /// normally stored as yscfg.ybn).
     /// </summary>
     public sealed partial class YurisConfigScript : IScript, IStructuredScriptData
     {
-        private const int CaptionLengthOffset = 0x4C;
-        private const int CaptionOffset = CaptionLengthOffset + sizeof(ushort);
-        private const int HeaderSize = CaptionOffset;
+        private const int V2CaptionLengthOffset = 0x40;
+        private const int V2HeaderSize = V2CaptionLengthOffset + sizeof(ushort);
+        private const int V5CaptionLengthOffset = 0x4C;
+        private const int V5HeaderSize = V5CaptionLengthOffset + sizeof(ushort);
+        private const uint V2VersionUpperBound = 466;
         private const int ImageTypeSlotCount = 8;
         private const int SoundTypeSlotCount = 4;
         private const string JsonFormat = "vntextpatch.yuris-config.v1";
@@ -43,12 +51,16 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         private byte[]? _data;
         private bool _hasCaption;
         private ushort _captionLengthField;
+        private int _captionLengthOffset;
+        private int _headerSize;
 
         public string Extension => ".ybn";
 
         public bool SupportsStructuredData => _data != null;
 
         public uint Version { get; private set; }
+
+        public YurisConfigLayout Layout { get; private set; }
 
         /// <summary>
         /// False for header-only YSCF variants where the final ushort does not
@@ -67,43 +79,89 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             _data = null;
             _hasCaption = false;
             _captionLengthField = 0;
+            _captionLengthOffset = 0;
+            _headerSize = 0;
 
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
 
-            if (data.Length < HeaderSize)
+            if (data.Length < V2HeaderSize)
                 throw new InvalidDataException("YSCF configuration header is truncated.");
 
             if (!data.AsSpan(0, 4).SequenceEqual("YSCF"u8))
                 throw new InvalidDataException("Invalid YSCF signature.");
 
-            ushort captionLength = BinaryPrimitives.ReadUInt16LittleEndian(
-                data.AsSpan(CaptionLengthOffset, sizeof(ushort)));
+            uint version = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(4, 4));
 
-            // The documented YSCF V5 layout ends with a 16-bit caption length
-            // followed by that many Shift-JIS bytes. Some games contain only
-            // the fixed-size header, with a non-length value in this slot.
-            // Accept that exact header-only variant but preserve the slot and
-            // disable caption editing instead of guessing its meaning.
-            if (data.Length == HeaderSize)
+            bool v2Valid = TryValidateLayout(
+                data, V2CaptionLengthOffset, V2HeaderSize,
+                out bool v2HasCaption, out ushort v2CaptionLength);
+
+            bool v5Valid = TryValidateLayout(
+                data, V5CaptionLengthOffset, V5HeaderSize,
+                out bool v5HasCaption, out ushort v5CaptionLength);
+
+            if (!v2Valid && !v5Valid)
             {
-                _hasCaption = captionLength == 0;
-                _captionLengthField = captionLength;
+                throw new InvalidDataException(
+                    $"YSCF version {version} does not match the known V2 or V5 layouts. " +
+                    $"V2 expects a {V2HeaderSize}-byte header with caption length at 0x{V2CaptionLengthOffset:X}; " +
+                    $"V5 expects a {V5HeaderSize}-byte header with caption length at 0x{V5CaptionLengthOffset:X}. " +
+                    $"Actual file size: {data.Length} bytes.");
             }
-            else if (data.Length == HeaderSize + captionLength)
+
+            bool useV2;
+            if (v2Valid && v5Valid)
             {
-                _hasCaption = true;
-                _captionLengthField = captionLength;
+                // A V2 file with a 12-byte caption is exactly 78 bytes long,
+                // which is also the fixed V5 header size. In that ambiguous
+                // case the known legacy version range resolves the layout.
+                useV2 = version <= V2VersionUpperBound;
             }
             else
             {
-                throw new InvalidDataException(
-                    $"YSCF caption length is inconsistent: header says {captionLength} bytes, " +
-                    $"but the file contains {data.Length - HeaderSize} bytes after the fixed header.");
+                useV2 = v2Valid;
             }
 
-            Version = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(4, 4));
+            Layout = useV2 ? YurisConfigLayout.V2 : YurisConfigLayout.V5;
+            _captionLengthOffset = useV2 ? V2CaptionLengthOffset : V5CaptionLengthOffset;
+            _headerSize = useV2 ? V2HeaderSize : V5HeaderSize;
+            _hasCaption = useV2 ? v2HasCaption : v5HasCaption;
+            _captionLengthField = useV2 ? v2CaptionLength : v5CaptionLength;
+            Version = version;
             _data = (byte[])data.Clone();
+        }
+
+        private static bool TryValidateLayout(
+            byte[] data,
+            int captionLengthOffset,
+            int headerSize,
+            out bool hasCaption,
+            out ushort captionLength)
+        {
+            hasCaption = false;
+            captionLength = 0;
+
+            if (data.Length < headerSize)
+                return false;
+
+            captionLength = BinaryPrimitives.ReadUInt16LittleEndian(
+                data.AsSpan(captionLengthOffset, sizeof(ushort)));
+
+            if (data.Length == headerSize)
+            {
+                // Preserve header-only variants whose final word is reserved
+                // or otherwise not a caption length. A zero value represents
+                // a valid empty caption.
+                hasCaption = captionLength == 0;
+                return true;
+            }
+
+            if (data.Length != headerSize + captionLength)
+                return false;
+
+            hasCaption = true;
+            return true;
         }
 
         public IEnumerable<ScriptString> GetStrings()
@@ -178,12 +236,18 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             JsonElement root = ReadJsonRoot(source.ToFilePath());
             ValidateIdentity(root);
 
-            byte[] header = _data.AsSpan(0, HeaderSize).ToArray();
+            byte[] header = _data.AsSpan(0, _headerSize).ToArray();
 
             // Unknown/reserved fields are exported for inspection but are not
             // rewritten. All recognized settings below remain editable.
             EnsureUnchangedUInt32(root, "unknown0", ReadUInt32(_data, 8));
-            EnsureUnchangedUInt32(root, "unknown1", ReadUInt32(_data, 72));
+
+            if (Layout == YurisConfigLayout.V5)
+            {
+                EnsureUnchangedUInt32(root, "unknown1", ReadUInt32(_data, 72));
+                PatchUInt32(root, header, "filePriorityDebug", 64);
+                PatchUInt32(root, header, "filePriorityRelease", 68);
+            }
 
             PatchUInt32(root, header, "compile", 12);
             PatchUInt32(root, header, "screenWidth", 16);
@@ -195,8 +259,6 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             PatchUInt32(root, header, "windowResize", 52);
             PatchUInt32(root, header, "windowFrame", 56);
             PatchUInt32(root, header, "filePriorityDev", 60);
-            PatchUInt32(root, header, "filePriorityDebug", 64);
-            PatchUInt32(root, header, "filePriorityRelease", 68);
 
             PatchByteArray(root, header, "imageTypeSlots", 28, ImageTypeSlotCount);
             PatchByteArray(root, header, "soundTypeSlots", 36, SoundTypeSlotCount);
@@ -209,7 +271,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             }
             else
             {
-                // The 16-bit slot at 0x4C is not a valid caption length in this
+                // The 16-bit slot is not a valid caption length in this
                 // header-only variant. Keep it byte-for-byte unchanged.
                 JsonElement captionValue = root.TryGetProperty("caption", out JsonElement suppliedCaption)
                     ? suppliedCaption
@@ -233,6 +295,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 Format = JsonFormat,
                 Magic = "YSCF",
                 Version = Version,
+                Layout = Layout.ToString(),
                 Unknown0 = ReadUInt32(data, 8),
                 Compile = ReadUInt32(data, 12),
                 ScreenWidth = ReadUInt32(data, 16),
@@ -246,9 +309,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 WindowResize = ReadUInt32(data, 52),
                 WindowFrame = ReadUInt32(data, 56),
                 FilePriorityDev = ReadUInt32(data, 60),
-                FilePriorityDebug = ReadUInt32(data, 64),
-                FilePriorityRelease = ReadUInt32(data, 68),
-                Unknown1 = ReadUInt32(data, 72),
+                FilePriorityDebug = Layout == YurisConfigLayout.V5 ? ReadUInt32(data, 64) : null,
+                FilePriorityRelease = Layout == YurisConfigLayout.V5 ? ReadUInt32(data, 68) : null,
+                Unknown1 = Layout == YurisConfigLayout.V5 ? ReadUInt32(data, 72) : null,
                 HasCaption = _hasCaption,
                 CaptionLengthField = _captionLengthField,
                 Caption = _hasCaption ? ReadCaption(data) : null
@@ -275,6 +338,13 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 !version.TryGetUInt32(out uint jsonVersion) ||
                 jsonVersion != Version)
                 throw new InvalidDataException("YSCF JSON was exported from a different source version.");
+
+            // Older exports did not include this property, so absence remains
+            // accepted for backward compatibility.
+            if (root.TryGetProperty("layout", out JsonElement layout) &&
+                (layout.ValueKind != JsonValueKind.String ||
+                 !string.Equals(layout.GetString(), Layout.ToString(), StringComparison.Ordinal)))
+                throw new InvalidDataException("YSCF JSON was exported from a different binary layout.");
         }
 
         private static JsonElement ReadJsonRoot(string path)
@@ -363,30 +433,30 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             return value.GetString() ?? string.Empty;
         }
 
-        private static byte[] BuildPatchedData(byte[] header, string caption)
+        private byte[] BuildPatchedData(byte[] header, string caption)
         {
             byte[] captionBytes = StringUtil.SjisTunnelEncoding.GetBytes(caption);
             if (captionBytes.Length > ushort.MaxValue)
                 throw new InvalidDataException("YSCF caption exceeds the 16-bit length limit.");
 
-            byte[] output = new byte[HeaderSize + captionBytes.Length];
-            Buffer.BlockCopy(header, 0, output, 0, HeaderSize);
+            byte[] output = new byte[_headerSize + captionBytes.Length];
+            Buffer.BlockCopy(header, 0, output, 0, _headerSize);
             BinaryPrimitives.WriteUInt16LittleEndian(
-                output.AsSpan(CaptionLengthOffset, sizeof(ushort)),
+                output.AsSpan(_captionLengthOffset, sizeof(ushort)),
                 (ushort)captionBytes.Length);
 
-            Buffer.BlockCopy(captionBytes, 0, output, HeaderSize, captionBytes.Length);
+            Buffer.BlockCopy(captionBytes, 0, output, _headerSize, captionBytes.Length);
             return output;
         }
 
-        private static string ReadCaption(byte[] data)
+        private string ReadCaption(byte[] data)
         {
             ushort length = BinaryPrimitives.ReadUInt16LittleEndian(
-                data.AsSpan(CaptionLengthOffset, sizeof(ushort)));
-            if (data.Length != HeaderSize + length)
+                data.AsSpan(_captionLengthOffset, sizeof(ushort)));
+            if (data.Length != _headerSize + length)
                 throw new InvalidDataException("YSCF caption is unavailable for this layout.");
 
-            return StringUtil.SjisEncoding.GetString(data, HeaderSize, length);
+            return StringUtil.SjisEncoding.GetString(data, _headerSize, length);
         }
 
         private static uint ReadUInt32(byte[] data, int offset) =>
@@ -416,6 +486,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             public string Format { get; set; } = JsonFormat;
             public string Magic { get; set; } = "YSCF";
             public uint Version { get; set; }
+            public string Layout { get; set; } = string.Empty;
             public uint Unknown0 { get; set; }
             public uint Compile { get; set; }
             public uint ScreenWidth { get; set; }
@@ -429,9 +500,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             public uint WindowResize { get; set; }
             public uint WindowFrame { get; set; }
             public uint FilePriorityDev { get; set; }
-            public uint FilePriorityDebug { get; set; }
-            public uint FilePriorityRelease { get; set; }
-            public uint Unknown1 { get; set; }
+            public uint? FilePriorityDebug { get; set; }
+            public uint? FilePriorityRelease { get; set; }
+            public uint? Unknown1 { get; set; }
             public bool HasCaption { get; set; }
             public ushort CaptionLengthField { get; set; }
             public string? Caption { get; set; }
