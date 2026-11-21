@@ -5,7 +5,7 @@ using System.Text;
 
 namespace VNTextPatch.Shared.Scripts.Yuris
 {
-    public class YurisScript : IScript
+    public class YurisScript : IScript, IStructuredScriptData
     {
         public string Extension => ".ybn";
 
@@ -25,6 +25,25 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                                _ => null
                            };
             _innerScript?.Load(location);
+        }
+
+        public bool SupportsStructuredData =>
+            _innerScript is IStructuredScriptData structured && structured.SupportsStructuredData;
+
+        public void ExportStructuredData(ScriptLocation destination)
+        {
+            if (_innerScript is not IStructuredScriptData structured || !structured.SupportsStructuredData)
+                throw new NotSupportedException("The loaded YU-RIS resource does not expose structured data.");
+
+            structured.ExportStructuredData(destination);
+        }
+
+        public void ImportStructuredData(ScriptLocation source, ScriptLocation destination)
+        {
+            if (_innerScript is not IStructuredScriptData structured || !structured.SupportsStructuredData)
+                throw new NotSupportedException("The loaded YU-RIS resource does not expose structured data.");
+
+            structured.ImportStructuredData(source, destination);
         }
 
         public IEnumerable<ScriptString> GetStrings()

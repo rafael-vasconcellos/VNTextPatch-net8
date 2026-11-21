@@ -63,8 +63,24 @@ namespace VNTextPatch.Shared
             if (!_textCollection.Exists(textScriptName))
                 throw new FileNotFoundException($"{textScriptName} does not exist in {_textCollection.Name}");
 
-            _inputOutputScript.Load(new ScriptLocation(_inputCollection, inputScriptName));
-            _textScript.Load(new ScriptLocation(_textCollection, textScriptName));
+            var inputLocation = new ScriptLocation(_inputCollection, inputScriptName);
+            var textLocation = new ScriptLocation(_textCollection, textScriptName);
+            var outputLocation = new ScriptLocation(_outputCollection, outputScriptName);
+
+            _inputOutputScript.Load(inputLocation);
+
+            if (_inputOutputScript is IStructuredScriptData structured &&
+                structured.SupportsStructuredData)
+            {
+                // Begin with the original binary so any fields not represented
+                // in the editable JSON remain byte-for-byte intact.
+                _outputCollection.Add(outputScriptName, inputLocation);
+                structured.ImportStructuredData(textLocation, outputLocation);
+                Console.WriteLine($"{inputScriptName} -> {outputScriptName}: structured metadata applied");
+                return;
+            }
+
+            _textScript.Load(textLocation);
             List<ScriptString> strings = _textScript.GetStrings().ToList();
             int inputCount = _inputCollection.GetMessageStrings(inputScriptName).Count;
             int textCount = strings.Count(s => s.Type == ScriptStringType.Message);
@@ -72,7 +88,7 @@ namespace VNTextPatch.Shared
             Translated += textCount; Total += inputCount;
 
             _outputCollection.Add(outputScriptName);
-            _inputOutputScript.WritePatched(strings, new ScriptLocation(_outputCollection, outputScriptName));
+            _inputOutputScript.WritePatched(strings, outputLocation);
         }
 
         public void InsertAll()

@@ -56,8 +56,54 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             }
         }
 
-        public override IEnumerable<string> Scripts =>
-            _scriptList.Entries.Select(entry => entry.ScriptPath);
+        public override IEnumerable<string> Scripts
+        {
+            get
+            {
+                IEnumerable<string> indexedScripts =
+                    _scriptList.Entries.Select(entry => entry.ScriptPath);
+
+                // YSTL lists compiled scenario scripts, not the engine's
+                // auxiliary metadata files. Include those separately so that
+                // extraction can inspect them and insertion can copy them
+                // unchanged into the patched game directory.
+                IEnumerable<string> metadataFiles =
+                    Directory.EnumerateFiles(FolderPath, "*.ybn", SearchOption.TopDirectoryOnly)
+                        .Where(IsAuxiliaryMetadataFile)
+                        .Select(Path.GetFileName)
+                        .Where(name => !string.IsNullOrEmpty(name))
+                        .Select(name => name!);
+
+                StringComparer comparer = OperatingSystem.IsWindows()
+                    ? StringComparer.OrdinalIgnoreCase
+                    : StringComparer.Ordinal;
+
+                return indexedScripts.Concat(metadataFiles).Distinct(comparer);
+            }
+        }
+
+        private static bool IsAuxiliaryMetadataFile(string filePath)
+        {
+            string fileName = Path.GetFileName(filePath);
+
+            // The index is copied explicitly by CreateSibling. Compiled
+            // scripts are represented by their logical YSTL paths.
+            if (fileName.Equals(IndexFileName, StringComparison.OrdinalIgnoreCase) ||
+                IsCompiledScriptFileName(fileName))
+                return false;
+
+            Span<byte> magic = stackalloc byte[4];
+            using FileStream stream = File.OpenRead(filePath);
+            if (stream.Read(magic) != magic.Length)
+                return false;
+
+            return magic.SequenceEqual("YSVR"u8) ||
+                   magic.SequenceEqual("YSCM"u8) ||
+                   magic.SequenceEqual("YSCF"u8) ||
+                   magic.SequenceEqual("YSER"u8) ||
+                   magic.SequenceEqual("YSLB"u8) ||
+                   magic.SequenceEqual("YSTD"u8);
+        }
 
         public override string GetFilePath(string scriptName)
         {
@@ -74,14 +120,16 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             if (_entries.TryGetValue(key, out YurisScriptListEntry? entry))
                 return Path.Combine(FolderPath, entry.GetCompiledFileName());
 
-            // Other YU-RIS resources (ysc.ybn, yscfg.ybn, ysl.ybn, etc.)
-            // are stored by their own names and are not entries in YSTL.
+            // Other YU-RIS resources (ysv.ybn, ysc.ybn, yscfg.ybn, yse.ybn,
+            // ysl.ybn, yst.ybn, etc.) are stored by their own names and are
+            // not entries in YSTL. Known resource names must also resolve when
+            // the destination file has not been created yet (Inserter.Add).
             string directPath = base.GetFilePath(scriptName);
-            if (File.Exists(directPath))
+            if (IsKnownMetadataResourceFile(fileName) || File.Exists(directPath))
                 return directPath;
 
             throw new FileNotFoundException(
-                $"Script '{scriptName}' is neither listed in {IndexFileName} nor present in the folder.");
+                $"Script '{scriptName}' is neither listed in {IndexFileName} nor a known metadata resource.");
         }
 
         public override FolderScriptCollection CreateSibling(string folderPath)
@@ -99,6 +147,16 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 File.Copy(sourceIndex, destinationIndex, true);
 
             return new YurisFolderScriptCollection(folderPath, Format);
+        }
+
+        private static bool IsKnownMetadataResourceFile(string fileName)
+        {
+            return fileName.Equals("ysv.ybn", StringComparison.OrdinalIgnoreCase) ||
+                   fileName.Equals("ysc.ybn", StringComparison.OrdinalIgnoreCase) ||
+                   fileName.Equals("yscfg.ybn", StringComparison.OrdinalIgnoreCase) ||
+                   fileName.Equals("yse.ybn", StringComparison.OrdinalIgnoreCase) ||
+                   fileName.Equals("ysl.ybn", StringComparison.OrdinalIgnoreCase) ||
+                   fileName.Equals("yst.ybn", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsCompiledScriptFileName(string fileName)

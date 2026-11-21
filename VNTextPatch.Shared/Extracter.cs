@@ -43,7 +43,36 @@ namespace VNTextPatch.Shared
 
             int scriptLines = 0;
             int scriptChars = 0;
-            _inputScript.Load(new ScriptLocation(_inputCollection, inputScriptName));
+            var inputLocation = new ScriptLocation(_inputCollection, inputScriptName);
+            var textLocation = new ScriptLocation(_textCollection, textScriptName);
+
+            _inputScript.Load(inputLocation);
+
+            if (_inputScript is IStructuredScriptData structured &&
+                structured.SupportsStructuredData)
+            {
+                // Do not overwrite an existing metadata file: it may contain
+                // user edits from an earlier extraction.
+                if (!_textCollection.Exists(textScriptName))
+                    _textCollection.Add(textScriptName);
+
+                string structuredPath = textLocation.ToFilePath();
+                bool needsExport = !File.Exists(structuredPath) ||
+                                   new FileInfo(structuredPath).Length == 0;
+
+                if (needsExport)
+                {
+                    structured.ExportStructuredData(textLocation);
+                    Console.WriteLine($"{inputScriptName} -> {textScriptName}: structured metadata");
+                }
+                else
+                {
+                    Console.WriteLine($"{inputScriptName}: structured metadata already exists; keeping it");
+                }
+
+                return;
+            }
+
             List<ScriptString> strings = _inputScript.GetStrings().ToList();
             if (strings.Count == 0)
                 return;
@@ -51,7 +80,7 @@ namespace VNTextPatch.Shared
             if (!_textCollection.Exists(textScriptName))
                 _textCollection.Add(textScriptName);
 
-            _textScript.WritePatched(strings, new ScriptLocation(_textCollection, textScriptName));
+            _textScript.WritePatched(strings, textLocation);
 
             foreach (ScriptString str in strings.Where(s => s.Type == ScriptStringType.Message))
             {

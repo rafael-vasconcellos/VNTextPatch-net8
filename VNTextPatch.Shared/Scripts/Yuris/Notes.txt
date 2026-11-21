@@ -303,3 +303,38 @@ in Commands and excluded from ExecutableCommands.
 Compiler settings, keywords and error-message strings are exposed as optional
 metadata. DefinitionMetadata and TrailingData preserve the original unparsed
 regions. The parser does not emit translation strings and never rewrites YSCD.
+
+=====================================
+Editable YSVR metadata export
+=====================================
+YurisVariableScript implements IStructuredScriptData. Extraction writes
+ysv.json or ysv.jsonl (according to the selected output format) instead
+of treating variables as dialogue strings.
+
+Each variable has a stable ID:
+    "{scope}:{flag}:{scriptId}:{index}"
+
+Exported fields include:
+    id, scope, scopeValue, flag, scriptId, index,
+    type, typeValue, dimensions, value, isEvaluated,
+    expressionBase64
+
+The value property is editable:
+    type integer          -> signed 64-bit JSON number
+    type double           -> finite JSON number
+    type stringExpression -> JSON string
+
+A dynamic string expression that cannot be statically evaluated exports
+value=null, isEvaluated=false and its original expressionBase64. Setting
+value to a string replaces the complete initializer expression with a
+constant pushstring expression. Leaving value as null preserves the original
+expression byte-for-byte.
+
+During insertion, only changed initializers are rewritten. Unchanged records,
+headers, dimensions, flags, and trailing data are copied from the source YSVR.
+The original binary is the baseline, so metadata not understood by the parser
+is not discarded.
+
+Note: YSCF caption (yscfg.ybn) is a separate configuration field and already
+uses the normal text extraction/insertion path. It should be edited in
+yscfg.json/jsonl; ysv.* is for actual global/local/static variable values.
