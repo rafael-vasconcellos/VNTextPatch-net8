@@ -21,7 +21,10 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                                "YSTB" => new YurisScenarioScript(),
                                "YSCF" => new YurisConfigScript(),
                                "YSTL" => new YurisScriptList(),
-                               "YSVR" => new YurisVariableScript(),
+                               // YSVR is parsed by YurisVariableScript when explicitly
+                               // requested, but is intentionally excluded from automatic
+                               // text extraction. YSCF remains automatically exportable.
+                               //"YSVR" => new YurisVariableScript(),
                                _ => null
                            };
             _innerScript?.Load(location);
