@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using VNTextPatch.Shared;
 using VNTextPatch.Shared.Scripts;
 
 namespace VNTextPatch.Shared.Scripts.Yuris
@@ -10,7 +11,8 @@ namespace VNTextPatch.Shared.Scripts.Yuris
     /// Folder collection for YU-RIS games. The YSTL index maps logical script
     /// paths to physical ystXXXXX.ybn files; callers only see the logical paths.
     /// </summary>
-    public sealed class YurisFolderScriptCollection : FolderScriptCollection
+    public sealed class YurisFolderScriptCollection :
+        FolderScriptCollection, IScriptCollectionProjectExporter
     {
         private const string IndexFileName = "yst_list.ybn";
 
@@ -147,6 +149,89 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 File.Copy(sourceIndex, destinationIndex, true);
 
             return new YurisFolderScriptCollection(folderPath, Format);
+        }
+
+        /// <summary>
+        /// Exports the compiled scenario scripts as a logical script project,
+        /// following the directory layout used by RxYuris' YSTL MakeStructure:
+        /// script/{logical path} contains the original YSTB bytes with the
+        /// logical .yst name, while ysbin contains the index and command table.
+        /// Existing destination files are preserved to avoid overwriting edits.
+        /// </summary>
+        public void ExportProjectFiles(string destinationDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(destinationDirectory))
+                throw new ArgumentException(
+                    "A project output directory is required.",
+                    nameof(destinationDirectory));
+
+            string projectRoot = Path.GetFullPath(destinationDirectory);
+            string scriptRoot = Path.Combine(projectRoot, "script");
+            string binaryRoot = Path.Combine(projectRoot, "ysbin");
+
+            Directory.CreateDirectory(scriptRoot);
+            Directory.CreateDirectory(binaryRoot);
+
+            CopyIfMissing(
+                Path.Combine(FolderPath, IndexFileName),
+                Path.Combine(binaryRoot, IndexFileName));
+
+            // YSCM command definitions are useful when inspecting or editing
+            // command bytecode. Do not copy unrelated metadata such as YSVR.
+            string commandListPath = Path.Combine(FolderPath, "ysc.ybn");
+            if (File.Exists(commandListPath))
+            {
+                CopyIfMissing(
+                    commandListPath,
+                    Path.Combine(binaryRoot, "ysc.ybn"));
+            }
+
+            foreach (YurisScriptListEntry entry in _scriptList.Entries)
+            {
+                string relativePath = NormalizeScriptName(entry.ScriptPath);
+                string sourcePath = GetFilePath(relativePath);
+                string destinationPath = Path.GetFullPath(Path.Combine(
+                    scriptRoot,
+                    relativePath.Replace('/', Path.DirectorySeparatorChar)));
+
+                string relativeToRoot = Path.GetRelativePath(scriptRoot, destinationPath);
+                if (Path.IsPathRooted(relativeToRoot) ||
+                    relativeToRoot == ".." ||
+                    relativeToRoot.StartsWith(
+                        ".." + Path.DirectorySeparatorChar,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException(
+                        $"YSTL script path escapes the project output directory: {entry.ScriptPath}");
+                }
+
+                CopyIfMissing(sourcePath, destinationPath);
+            }
+        }
+
+        private static void CopyIfMissing(string sourcePath, string destinationPath)
+        {
+            if (!File.Exists(sourcePath))
+                throw new FileNotFoundException(
+                    "A YU-RIS project file referenced by the script index was not found.",
+                    sourcePath);
+
+            string fullSourcePath = Path.GetFullPath(sourcePath);
+            string fullDestinationPath = Path.GetFullPath(destinationPath);
+
+            StringComparison comparison = OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
+            if (fullSourcePath.Equals(fullDestinationPath, comparison) ||
+                File.Exists(fullDestinationPath))
+                return;
+
+            string? directory = Path.GetDirectoryName(fullDestinationPath);
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+
+            File.Copy(fullSourcePath, fullDestinationPath);
         }
 
         private static bool IsKnownMetadataResourceFile(string fileName)

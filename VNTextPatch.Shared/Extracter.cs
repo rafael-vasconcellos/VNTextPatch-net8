@@ -43,11 +43,9 @@ namespace VNTextPatch.Shared
 
             int scriptLines = 0;
             int scriptChars = 0;
-            var inputLocation = new ScriptLocation(_inputCollection, inputScriptName);
             var textLocation = new ScriptLocation(_textCollection, textScriptName);
 
-            _inputScript.Load(inputLocation);
-
+            _inputScript.Load(new ScriptLocation(_inputCollection, inputScriptName));
             if (_inputScript is IStructuredScriptData structured &&
                 structured.SupportsStructuredData)
             {
@@ -108,11 +106,18 @@ namespace VNTextPatch.Shared
                         textScriptName = inputScriptName + _textScript.Extension;
 
                     ExtractOne(inputScriptName, textScriptName);
-                } catch (Exception ex)
-                {
-                    Console.Error.Write("Error when parsing "+ inputScriptName + " : " + ex.ToString());
                 }
+                catch (Exception ex)
+                {
+                    Console.Error.Write("Error when parsing " + inputScriptName + " : " + ex);
+                }
+            }
 
+            // Engine-specific project files are exported through an optional
+            // collection capability. The extractor remains unaware of YU-RIS.
+            if (_inputCollection is IScriptCollectionProjectExporter projectExporter)
+            {
+                projectExporter.ExportProjectFiles(_textCollection.Name);
             }
         }
 
