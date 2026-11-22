@@ -24,6 +24,41 @@ namespace VNTextPatch.Shared.Patching.Yuris
     /// </summary>
     public static class YurisExecutablePatcher
     {
+        /// <summary>
+        /// Returns true when the file is a PE executable containing exactly one
+        /// recognized YU-RIS character-range table (Shift-JIS or GBK).
+        /// Unrelated executables and unsupported YU-RIS variants return false.
+        /// </summary>
+        public static bool IsSupportedExecutable(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            if (!File.Exists(path))
+                return false;
+
+            byte[] data = File.ReadAllBytes(path);
+
+            try
+            {
+                ValidatePortableExecutable(data, path);
+
+                int shiftJisOffset = FindUnique(
+                    data, YurisCharacterRangeTable.ShiftJis, "Shift-JIS");
+                int gbkOffset = FindUnique(
+                    data, YurisCharacterRangeTable.Gbk, "GBK");
+
+                return (shiftJisOffset >= 0 && gbkOffset < 0) ||
+                       (shiftJisOffset < 0 && gbkOffset >= 0);
+            }
+            catch (InvalidDataException)
+            {
+                // A malformed, ambiguous, or hybrid executable is not a
+                // reliable signal that this is a supported YU-RIS game.
+                return false;
+            }
+        }
+
         public static YurisExecutablePatchResult Patch(
             string inputPath,
             string outputPath)
