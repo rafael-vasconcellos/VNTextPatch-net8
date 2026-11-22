@@ -60,7 +60,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             GameDirectory = fullPath;
             UsesGbk = Directory
                 .EnumerateFiles(fullPath, "*", SearchOption.TopDirectoryOnly)
-                .Any(path => Path.GetExtension(path).Equals(".exe", StringComparison.OrdinalIgnoreCase));
+                .Where(path => Path.GetExtension(path).Equals(
+                    ".exe", StringComparison.OrdinalIgnoreCase))
+                .Any(YurisExecutablePatcher.IsSupportedExecutable);
 
             WriteEncoding = UsesGbk
                 ? GbkEncoding.Value
