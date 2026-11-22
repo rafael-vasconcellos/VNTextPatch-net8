@@ -473,7 +473,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             return result;
         }
 
-        private static void WriteOutput(ScriptLocation destination, byte[] data)
+        private void WriteOutput(ScriptLocation destination, byte[] data)
         {
             string path = destination.ToFilePath();
             string? directory = Path.GetDirectoryName(path);
@@ -481,6 +481,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 Directory.CreateDirectory(directory);
 
             File.WriteAllBytes(path, data);
+            _encoding.EnsureExecutablePatched(destination);
         }
 
         private sealed class YurisConfigExport

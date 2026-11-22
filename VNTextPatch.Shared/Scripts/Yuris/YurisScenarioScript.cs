@@ -139,6 +139,8 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 {
                     outputFileStream.Write(new ReadOnlySpan<byte>(newScript.Array, 0, newScript.Count));
                 }
+
+                _encoding.EnsureExecutablePatched(location);
             }
         }
 

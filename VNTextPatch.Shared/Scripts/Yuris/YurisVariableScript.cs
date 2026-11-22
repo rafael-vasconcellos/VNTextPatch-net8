@@ -390,6 +390,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 Directory.CreateDirectory(destinationDirectory);
 
             File.WriteAllBytes(destinationPath, output);
+            _encoding.EnsureExecutablePatched(destination);
         }
 
         private VariableExportRecord ToExportRecord(YurisVariableDeclaration variable)
