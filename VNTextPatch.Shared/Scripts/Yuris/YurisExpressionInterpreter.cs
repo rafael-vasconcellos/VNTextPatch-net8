@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using VNTextPatch.Shared.Util;
@@ -303,7 +304,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         }
 
         private static bool TryReadString(
-            byte[] data, int offset, int length, out string? value)
+            byte[] data, int offset, int length, [NotNullWhen(true)] out string? value)
         {
             value = null;
             if (length < 2)

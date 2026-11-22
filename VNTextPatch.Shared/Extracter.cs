@@ -43,31 +43,14 @@ namespace VNTextPatch.Shared
 
             int scriptLines = 0;
             int scriptChars = 0;
+            var inputLocation = new ScriptLocation(_inputCollection, inputScriptName);
             var textLocation = new ScriptLocation(_textCollection, textScriptName);
 
-            _inputScript.Load(new ScriptLocation(_inputCollection, inputScriptName));
+            _inputScript.Load(inputLocation);
             if (_inputScript is IStructuredScriptData structured &&
                 structured.SupportsStructuredData)
             {
-                // Do not overwrite an existing metadata file: it may contain
-                // user edits from an earlier extraction.
-                if (!_textCollection.Exists(textScriptName))
-                    _textCollection.Add(textScriptName);
-
-                string structuredPath = textLocation.ToFilePath();
-                bool needsExport = !File.Exists(structuredPath) ||
-                                   new FileInfo(structuredPath).Length == 0;
-
-                if (needsExport)
-                {
-                    structured.ExportStructuredData(textLocation);
-                    Console.WriteLine($"{inputScriptName} -> {textScriptName}: structured metadata");
-                }
-                else
-                {
-                    Console.WriteLine($"{inputScriptName}: structured metadata already exists; keeping it");
-                }
-
+                structured.TryExportStructuredData(textLocation, inputLocation);
                 return;
             }
 

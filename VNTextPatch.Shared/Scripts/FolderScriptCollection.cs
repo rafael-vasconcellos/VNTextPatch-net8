@@ -83,7 +83,9 @@ namespace VNTextPatch.Shared.Scripts
         public static FolderScriptCollection Create(
             string folderPath, string? extension, string? format = null)
         {
-            if (YurisFolderScriptCollection.IsApplicable(folderPath, format))
+            if (YurisFolderScriptCollection.IsApplicable(folderPath, format) 
+                && Path.GetRelativePath(Directory.GetCurrentDirectory(), folderPath)
+                    .EndsWith("yuris", StringComparison.OrdinalIgnoreCase) )
                 return new YurisFolderScriptCollection(folderPath, format);
 
             return new FolderScriptCollection(folderPath, extension, format);
