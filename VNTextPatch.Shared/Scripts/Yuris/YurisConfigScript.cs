@@ -49,6 +49,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             });
 
         private byte[]? _data;
+        private YurisEncoding _encoding = YurisEncoding.Default;
         private bool _hasCaption;
         private ushort _captionLengthField;
         private int _captionLengthOffset;
@@ -70,6 +71,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
         public void Load(ScriptLocation location)
         {
+            _encoding = YurisEncoding.FromLocation(location);
             byte[] data = File.ReadAllBytes(location.ToFilePath());
             Parse(data);
         }
@@ -435,7 +437,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
         private byte[] BuildPatchedData(byte[] header, string caption)
         {
-            byte[] captionBytes = StringUtil.SjisTunnelEncoding.GetBytes(caption);
+            byte[] captionBytes = _encoding.WriteEncoding.GetBytes(caption);
             if (captionBytes.Length > ushort.MaxValue)
                 throw new InvalidDataException("YSCF caption exceeds the 16-bit length limit.");
 

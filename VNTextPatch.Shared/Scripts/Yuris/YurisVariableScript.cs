@@ -133,6 +133,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             });
 
         private byte[] _originalData = Array.Empty<byte>();
+        private YurisEncoding _encoding = YurisEncoding.Default;
 
         public string Extension => ".ybn";
 
@@ -158,6 +159,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
         public void Load(ScriptLocation location)
         {
+            _encoding = YurisEncoding.FromLocation(location);
             Parse(File.ReadAllBytes(location.ToFilePath()));
         }
 
@@ -546,7 +548,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 throw new InvalidDataException($"Duplicate variable ID in JSONL: {id}");
         }
 
-        private static byte[] SerializeStringExpression(string value)
+        private byte[] SerializeStringExpression(string value)
         {
             string quoted;
             if (!value.Contains('`'))
@@ -559,7 +561,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 throw new InvalidDataException(
                     "YU-RIS expression strings cannot contain all three quote delimiters.");
 
-            byte[] encoded = StringUtil.SjisTunnelEncoding.GetBytes(quoted);
+            byte[] encoded = _encoding.WriteEncoding.GetBytes(quoted);
             if (encoded.Length > ushort.MaxValue)
                 throw new InvalidDataException("YU-RIS string expression is too large.");
 

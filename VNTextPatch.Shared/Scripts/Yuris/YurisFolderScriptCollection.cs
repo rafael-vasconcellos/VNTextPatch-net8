@@ -17,6 +17,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         private const string IndexFileName = "yst_list.ybn";
 
         private readonly YurisScriptList _scriptList;
+        public YurisEncoding TextEncoding { get; }
         private readonly Dictionary<string, YurisScriptListEntry> _entries;
 
         public static bool IsApplicable(string folderPath, string? format = null)
@@ -34,6 +35,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         public YurisFolderScriptCollection(string folderPath, string? format = null)
             : base(folderPath, ".ybn", format)
         {
+            TextEncoding = new YurisEncoding(folderPath);
             _scriptList = new YurisScriptList();
 
             // Load the index through a plain collection: resolving the index

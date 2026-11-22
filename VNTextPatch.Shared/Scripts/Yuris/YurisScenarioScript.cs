@@ -11,6 +11,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
     {
         private string? _lastFolderPath;
         private YurisCommandList? _commandList;
+        private YurisEncoding _encoding = YurisEncoding.Default;
         private byte _wordCommandId;
         private byte _returnCodeCommandId;
         private byte _evalCommandId;
@@ -36,6 +37,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
         public void Load(ScriptLocation location)
         {
+            _encoding = YurisEncoding.FromLocation(location);
             LoadCommandListForScript(location);
             _data = File.ReadAllBytes(location.ToFilePath());
 
@@ -303,13 +305,13 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             }
         }
 
-        private static byte[] SerializeAttributeValue(in YurisAttribute attr, string value)
+        private byte[] SerializeAttributeValue(in YurisAttribute attr, string value)
         {
             switch (attr.Type)
             {
                 case YurisAttributeType.Raw:
                 {
-                    byte[] data = StringUtil.SjisTunnelEncoding.GetBytes(value);
+                    byte[] data = _encoding.WriteEncoding.GetBytes(value);
                     StandardControlCodesToYuris(data, 0, data.Length);
                     return data;
                 }
@@ -319,12 +321,12 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                     value = value.Replace("\r", "");
                     value = QuoteString(value);
 
-                    int numBytes = StringUtil.SjisTunnelEncoding.GetByteCount(value);
+                    int numBytes = _encoding.WriteEncoding.GetByteCount(value);
                     byte[] data = new byte[3 + numBytes];
                     data[0] = 0x4D;
                     data[1] = (byte)numBytes;
                     data[2] = (byte)(numBytes >> 8);
-                    StringUtil.SjisTunnelEncoding.GetBytes(value, 0, value.Length, data, 3);
+                    _encoding.WriteEncoding.GetBytes(value, 0, value.Length, data, 3);
                     return data;
                 }
 
@@ -394,7 +396,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             }
         }
 
-        private static void StandardControlCodesToYuris(byte[] str, int offset, int length)
+        private void StandardControlCodesToYuris(byte[] str, int offset, int length)
         {
             for (int i = offset; i < offset + length - 1;)
             {
@@ -428,7 +430,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 }
                 else
                 {
-                    i += StringUtil.IsShiftJisLeadByte(str[i]) ? 2 : 1;
+                    i += _encoding.IsWriteLeadByte(str[i]) ? 2 : 1;
                 }
             }
         }
