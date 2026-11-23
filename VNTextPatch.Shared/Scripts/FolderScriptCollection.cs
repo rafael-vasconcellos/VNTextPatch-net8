@@ -75,6 +75,18 @@ namespace VNTextPatch.Shared.Scripts
             Format = format;
         }
 
+        public static FolderScriptCollection Create(
+            string folderPath, string? format = null)
+        {
+            string? firstFilePath = Directory.EnumerateFiles(folderPath, "*", SearchOption.AllDirectories)
+                .FirstOrDefault(f => IsSupportedExtension(Path.GetExtension(f)));
+            string extension = firstFilePath != null? 
+                Path.GetExtension(firstFilePath).ToLower() :
+                "." + GlobalVariables.OutputFormat;
+
+            return Create(folderPath, extension, format);
+        }
+
         /// <summary>
         /// Creates the appropriate folder collection for a directory.
         /// Specialized collections are selected here so callers do not need
@@ -154,12 +166,9 @@ namespace VNTextPatch.Shared.Scripts
         {
             get
             {
-                int folderPathLength = FolderPath.Length;
-                if (!Name.EndsWith("\\"))
-                    folderPathLength++;
-
-                return Directory.EnumerateFiles(Name, "*" + Extension, SearchOption.AllDirectories)
-                                .Select(f => f.Substring(folderPathLength));
+                return Directory.EnumerateFiles(FolderPath, "*" + Extension, SearchOption.AllDirectories)
+                    .Select(f => Path.GetRelativePath(Name, f))
+                    .Where(f => IsSupportedExtension(Path.GetExtension(f)));
             }
         }
 
@@ -221,6 +230,19 @@ namespace VNTextPatch.Shared.Scripts
         public string? Format
         {
             get;
+        }
+
+        private static bool IsSupportedFile(string path)
+        {
+            var extension = Path.GetExtension(path);
+            return IsSupportedExtension(extension);
+        }
+
+        private static bool IsSupportedExtension(string extension)
+        {
+            var script = TemporaryScripts.FirstOrDefault(f => !string.IsNullOrEmpty(f.Extension) && f.Extension.Equals(extension, StringComparison.InvariantCultureIgnoreCase));
+            if (script == null) return false;
+            return true;
         }
     }
 }

@@ -232,12 +232,7 @@ namespace VNTextPatch
                 if (inputLocation.ScriptName != null)
                     throw new ArgumentException("Input path and script path must be of the same type (file or folder).");
 
-                string? firstFilePath = Directory.EnumerateFiles(textPath, "*", SearchOption.AllDirectories).FirstOrDefault();
-                string extension = firstFilePath != null? 
-                    Path.GetExtension(firstFilePath).ToLower() :
-                    "." + GlobalVariables.OutputFormat;
-
-                FolderScriptCollection collection = FolderScriptCollection.Create(textPath, extension);
+                FolderScriptCollection collection = FolderScriptCollection.Create(textPath);
                 return new ScriptLocation(collection: collection, scriptName: null);
             }
 
@@ -285,9 +280,8 @@ namespace VNTextPatch
                     Console.WriteLine($"Folder {path} is empty");
                     return false;
                 }
-                FolderScriptCollection collection = FolderScriptCollection.Create(
-                    path, Path.GetExtension(firstFilePath), format);
 
+                FolderScriptCollection collection = FolderScriptCollection.Create(path, format);
                 location = new ScriptLocation(collection: collection, scriptName: null);
                 return true;
             }
