@@ -52,7 +52,7 @@ jobs:
         run: |
           mkdir -p dist
           cd Build
-          zip -r "../dist/VNTextPatch-${RID}-${GITHUB_REF_NAME}.zip" "VNTextPatch-${RID}"
+          zip -r "../dist/VNTextPatch-${RID}-${GITHUB_REF_NAME}.zip" "VNTextPatch-${RID}" -x "*.pdb"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -81,5 +81,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
           files: dist/*.zip
           fail_on_unmatched_files: true
