@@ -34,6 +34,8 @@ Base fork: [hentaitaku/VNTranslationTools](https://github.com/hentaitaku/VNTrans
 + add `YamlScript` for handling YAML format. you can generate a single YAML file containing all of the game dialogue, so you can throw it in the AI chatbot of your preference.
 + enhance insertion statistics logs for all scripts
 + add `MarkdownScriptCollection` for handling the YAML/YML wrapped in markdown with VNDB data
++ add YU-RIS V2 and V5 configuration (yscfg)
++ Flexibilize `FolderScriptCollection` to contain different kind of files and exportations
 
 **Replaced libs:**  
 + System.Configuration -> Microsoft.Extensions.Configuration  
