@@ -20,7 +20,7 @@ using VNTextPatch.Shared.Scripts.Yuris;
 
 namespace VNTextPatch.Shared.Scripts
 {
-    public class FolderScriptCollection : IScriptCollection
+    public class FolderScriptCollection : IScriptCollection, IScriptCollectionProjectExporter
     {
         private static readonly IScript[] TemporaryScripts;
 
@@ -130,6 +130,101 @@ namespace VNTextPatch.Shared.Scripts
         {
             Directory.CreateDirectory(folderPath);
             return new FolderScriptCollection(folderPath, Extension, Format);
+        }
+
+        /// <summary>
+        /// Copies files that are not recognized as script formats into the
+        /// project directory, preserving their relative paths. Existing files
+        /// are not overwritten so repeated extraction keeps manual edits.
+        /// </summary>
+        public virtual void ExportProjectFiles(string destinationDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(destinationDirectory))
+                throw new ArgumentException(
+                    "A project output directory is required.", nameof(destinationDirectory));
+
+            string sourceRoot = Path.GetFullPath(FolderPath);
+            string destinationRoot = Path.GetFullPath(destinationDirectory);
+
+            StringComparison pathComparison = OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
+            if (sourceRoot.Equals(destinationRoot, pathComparison)) return;
+
+            // Snapshot before creating/copying anything. This also prevents
+            // newly copied files from being considered as source files when
+            // the project output is nested inside the input directory.
+            string[] sourceFiles = Directory
+                .EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories)
+                .ToArray();
+
+            bool destinationIsInsideSource =
+                IsSameOrWithinDirectory(destinationRoot, sourceRoot, pathComparison);
+
+            Directory.CreateDirectory(destinationRoot);
+
+            foreach (string sourceFile in sourceFiles)
+            {
+                string fullSourcePath = Path.GetFullPath(sourceFile);
+
+                if (destinationIsInsideSource &&
+                    IsSameOrWithinDirectory(fullSourcePath, destinationRoot, pathComparison))
+                    continue;
+
+                if (IsSupportedExtension(Path.GetExtension(fullSourcePath))) continue;
+
+                string relativePath = Path.GetRelativePath(sourceRoot, fullSourcePath);
+                if (Path.IsPathRooted(relativePath) ||
+                    relativePath == ".." ||
+                    relativePath.StartsWith(
+                        ".." + Path.DirectorySeparatorChar,
+                        pathComparison))
+                    throw new InvalidDataException(
+                        $"Source file escapes the collection directory: {sourceFile}");
+
+                string destinationFile = Path.GetFullPath(
+                    Path.Combine(destinationRoot, relativePath));
+
+                if (!IsSameOrWithinDirectory(
+                    destinationFile, destinationRoot, pathComparison))
+                {
+                    throw new InvalidDataException(
+                        $"Project file path escapes the destination directory: {relativePath}");
+                }
+
+                CopyIfMissing(fullSourcePath, destinationFile);
+            }
+        }
+
+        private static bool IsSameOrWithinDirectory(
+            string path,
+            string directory,
+            StringComparison comparison)
+        {
+            string fullPath = Path.GetFullPath(path);
+            string fullDirectory = Path.GetFullPath(directory);
+
+            if (fullPath.Equals(fullDirectory, comparison))
+                return true;
+
+            string directoryPrefix = Path.EndsInDirectorySeparator(fullDirectory)
+                ? fullDirectory
+                : fullDirectory + Path.DirectorySeparatorChar;
+
+            return fullPath.StartsWith(directoryPrefix, comparison);
+        }
+
+        private static void CopyIfMissing(string sourcePath, string destinationPath)
+        {
+            if (File.Exists(destinationPath))
+                return;
+
+            string? destinationDirectory = Path.GetDirectoryName(destinationPath);
+            if (!string.IsNullOrEmpty(destinationDirectory))
+                Directory.CreateDirectory(destinationDirectory);
+
+            File.Copy(sourcePath, destinationPath);
         }
 
         /// <summary>
