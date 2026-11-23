@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -208,11 +209,98 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            // Fail rather than silently replace characters that GBK cannot encode.
             return Encoding.GetEncoding(
                 936,
-                EncoderFallback.ExceptionFallback,
+                new LoggingEncoderFallback(),
                 DecoderFallback.ExceptionFallback);
         }
+
+        /// <summary>
+        /// Replaces characters that GBK cannot represent with the conspicuous
+        /// ASCII marker "<?>" and logs every occurrence with its Unicode code.
+        /// </summary>
+        private sealed class LoggingEncoderFallback : EncoderFallback
+        {
+            private const string Replacement = "<?>";
+            private static readonly ConcurrentDictionary<int, int> Occurrences = new();
+
+            public override int MaxCharCount => Replacement.Length;
+
+            public override EncoderFallbackBuffer CreateFallbackBuffer()
+            {
+                return new LoggingEncoderFallbackBuffer();
+            }
+
+            private sealed class LoggingEncoderFallbackBuffer : EncoderFallbackBuffer
+            {
+                private string _replacement = string.Empty;
+                private int _position;
+
+                public override bool Fallback(char charUnknown, int index)
+                {
+                    LogCodePoint(charUnknown);
+                    return SetReplacement();
+                }
+
+                public override bool Fallback(
+                    char charUnknownHigh,
+                    char charUnknownLow,
+                    int index)
+                {
+                    int codePoint = char.ConvertToUtf32(charUnknownHigh, charUnknownLow);
+                    LogCodePoint(codePoint);
+                    return SetReplacement();
+                }
+
+                public override char GetNextChar()
+                {
+                    if (_position >= _replacement.Length)
+                        return '\0';
+
+                    return _replacement[_position++];
+                }
+
+                public override bool MovePrevious()
+                {
+                    if (_position <= 0)
+                        return false;
+
+                    _position--;
+                    return true;
+                }
+
+                public override int Remaining => _replacement.Length - _position;
+
+                public override void Reset()
+                {
+                    _replacement = string.Empty;
+                    _position = 0;
+                    base.Reset();
+                }
+
+                private bool SetReplacement()
+                {
+                    if (Remaining > 0)
+                        throw new InvalidOperationException(
+                            "The GBK fallback buffer still contains replacement characters.");
+
+                    _replacement = Replacement;
+                    _position = 0;
+                    return true;
+                }
+
+                private static void LogCodePoint(int codePoint)
+                {
+                    int occurrence = Occurrences.AddOrUpdate(
+                        codePoint, 1, static (_, count) => count + 1);
+
+                    Console.WriteLine(
+                        $"[YU-RIS][GBK] Unsupported character U+{codePoint:X4} " +
+                        $"replaced with \"{Replacement}\" " +
+                        $"(occurrence {occurrence}).");
+                }
+            }
+        }
+
     }
 }
