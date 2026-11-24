@@ -8,18 +8,22 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 {
     /// <summary>
     /// Reads the YU-RIS script list (YSTL), which maps script sequence numbers
-    /// to their original relative paths.
+    /// to their original relative paths and compiler-generated counts.
     ///
-    /// Versions 300 through 466 are accepted by both the V2 and V5 reference
-    /// readers, so the record layout is validated against the complete file
-    /// instead of being selected from the version number alone.
+    /// The reference implementation switches from the old 16-byte metadata
+    /// tail to the new 20-byte tail at version 474. Because the technical
+    /// document describes the text-count field as starting at 477, both layouts
+    /// are fully validated and the alternate layout is tried as a fallback.
     /// </summary>
     public sealed class YurisScriptList : IScript
     {
         private const int HeaderSize = 12;
-        private const int MaxPathLength = 256;
-        private const int UnknownTableSizeV2 = 16;
-        private const int MetadataSizeV5 = 20;
+        private const uint MinimumSupportedVersion = 200;
+        private const uint MaximumSupportedVersionExclusive = 600;
+        private const uint V5LayoutVersion = 474;
+        private const int V2TrailingMetadataSize = 16;
+        private const int V5TrailingMetadataSize = 20;
+        private const int MinimumRecordSize = 24;
 
         public string Extension => ".ybn";
 
@@ -32,72 +36,75 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
         public void Load(ScriptLocation location)
         {
-            byte[] data = File.ReadAllBytes(location.ToFilePath());
+            Parse(File.ReadAllBytes(location.ToFilePath()));
+        }
+
+        /// <summary>
+        /// Parses a complete YSTL file from memory.
+        /// </summary>
+        public void Parse(byte[] data)
+        {
+            if (data == null)
+                throw new ArgumentNullException(nameof(data));
 
             if (data.Length < HeaderSize)
                 throw new InvalidDataException("YSTL header is truncated.");
 
-            if (Encoding.ASCII.GetString(data, 0, 4) != "YSTL")
+            if (!data.AsSpan(0, 4).SequenceEqual("YSTL"u8))
                 throw new InvalidDataException("Invalid YSTL signature.");
 
             using var stream = new MemoryStream(data, writable: false);
             using var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true);
 
-            reader.BaseStream.Position = 4;
+            stream.Position = 4;
             uint version = reader.ReadUInt32();
             uint entryCount = reader.ReadUInt32();
 
-            // RxYuris accepts V2 through 466 and V5 from 300 onward.
-            // The overlapping version range must be resolved by validating
-            // each candidate record layout all the way to EOF.
-            bool canBeV2 = version <= 466;
-            bool canBeV5 = version >= 300;
+            if (version < MinimumSupportedVersion ||
+                version >= MaximumSupportedVersionExclusive)
+            {
+                throw new InvalidDataException(
+                    $"Unsupported YSTL version: {version}. " +
+                    $"Supported range: {MinimumSupportedVersion}-{MaximumSupportedVersionExclusive - 1}.");
+            }
 
-            if (!canBeV2 && !canBeV5)
-                throw new InvalidDataException($"Unsupported YSTL version: {version}.");
-
-            // Every entry needs at least its sequence, path length and the
-            // fixed-size metadata. This also prevents unreasonable list
-            // allocations from a corrupt entry count.
-            int minimumEntrySize = canBeV2 ? 8 + UnknownTableSizeV2 : 8 + MetadataSizeV5;
-            if (entryCount > (uint)((data.Length - HeaderSize) / minimumEntrySize))
+            // The smallest valid entry has an 8-byte entry header, an empty
+            // path, an 8-byte FILETIME and two signed 32-bit counters.
+            if (entryCount > (uint)((data.Length - HeaderSize) / MinimumRecordSize))
+            {
                 throw new InvalidDataException(
                     $"YSTL declares an impossible entry count ({entryCount}).");
+            }
 
-            List<YurisScriptListEntry>? entries = null;
-            bool usesV5 = false;
-            string? v5Error = null;
-            string? v2Error = null;
+            bool preferredV5 = version >= V5LayoutVersion;
+            bool usesV5 = preferredV5;
 
-            // Prefer the conventional version mapping, then try the other
-            // layout only when that complete parse fails.
-            if (canBeV5)
+            if (!TryParseEntries(
+                data, entryCount, preferredV5,
+                out List<YurisScriptListEntry>? entries,
+                out string? preferredError))
             {
-                if (TryParseEntries(data, entryCount, isV5: true, out entries, out v5Error))
+                bool alternateV5 = !preferredV5;
+                if (!TryParseEntries(
+                    data, entryCount, alternateV5,
+                    out entries,
+                    out string? alternateError))
                 {
-                    usesV5 = true;
+                    string preferredName = preferredV5 ? "V5" : "V2";
+                    string alternateName = alternateV5 ? "V5" : "V2";
+                    throw new InvalidDataException(
+                        $"Could not parse YSTL version {version}. " +
+                        $"{preferredName} layout: {preferredError}. " +
+                        $"{alternateName} layout: {alternateError}.");
                 }
+
+                usesV5 = alternateV5;
             }
 
-            if (entries == null && canBeV2)
-            {
-                if (TryParseEntries(data, entryCount, isV5: false, out entries, out v2Error))
-                {
-                    usesV5 = false;
-                }
-            }
-
-            if (entries == null)
-            {
-                throw new InvalidDataException(
-                    $"Could not parse YSTL version {version}. " +
-                    $"V5 layout: {v5Error ?? "not applicable"}. " +
-                    $"V2 layout: {v2Error ?? "not applicable"}.");
-            }
-
+            // Publish state only after a complete parse has succeeded.
             Version = version;
             UsesV5Layout = usesV5;
-            Entries = entries.AsReadOnly();
+            Entries = entries!.AsReadOnly();
         }
 
         public IEnumerable<ScriptString> GetStrings()
@@ -130,7 +137,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 using var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true);
                 stream.Position = HeaderSize;
 
-                int trailingSize = isV5 ? MetadataSizeV5 : UnknownTableSizeV2;
+                int trailingSize = isV5
+                    ? V5TrailingMetadataSize
+                    : V2TrailingMetadataSize;
                 var parsedEntries = new List<YurisScriptListEntry>((int)entryCount);
 
                 for (uint i = 0; i < entryCount; i++)
@@ -140,55 +149,44 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                     uint sequence = reader.ReadUInt32();
                     uint pathLength = reader.ReadUInt32();
 
-                    if (pathLength > MaxPathLength)
+                    if (sequence != i)
+                    {
+                        throw new InvalidDataException(
+                            $"YSTL entry {i} has sequence number {sequence}; expected {i}.");
+                    }
+
+                    // The path length is bounded by the bytes remaining in
+                    // this file, not by an arbitrary MAX_PATH-style limit.
+                    long bytesRemaining = stream.Length - stream.Position;
+                    if (bytesRemaining < trailingSize ||
+                        (ulong)pathLength > (ulong)(bytesRemaining - trailingSize))
                     {
                         throw new InvalidDataException(
                             $"YSTL entry {i} has an invalid path length ({pathLength}).");
                     }
 
-                    EnsureRemaining(
-                        stream,
-                        checked((long)pathLength + trailingSize),
-                        $"YSTL entry {i}");
-
-                    byte[] pathBytes = reader.ReadBytes((int)pathLength);
+                    byte[] pathBytes = reader.ReadBytes(checked((int)pathLength));
                     if (pathBytes.Length != (int)pathLength)
                         throw new EndOfStreamException();
 
                     string scriptPath = StringUtil.SjisEncoding.GetString(pathBytes)
                         .Replace('\\', '/');
 
-                    uint lastWriteTimeHigh = reader.ReadUInt32();
-                    uint lastWriteTimeLow = reader.ReadUInt32();
-
-                    uint variableCount = 0;
-                    uint labelCount = 0;
-                    uint textCount = 0;
-                    uint unknown0 = 0;
-                    uint unknown1 = 0;
-
-                    if (isV5)
-                    {
-                        variableCount = reader.ReadUInt32();
-                        labelCount = reader.ReadUInt32();
-                        textCount = reader.ReadUInt32();
-                    }
-                    else
-                    {
-                        unknown0 = reader.ReadUInt32();
-                        unknown1 = reader.ReadUInt32();
-                    }
+                    // FILETIME is one unsigned 64-bit value followed by
+                    // signed 32-bit compiler counters.
+                    ulong fileTime = reader.ReadUInt64();
+                    int variableCount = reader.ReadInt32();
+                    int labelCount = reader.ReadInt32();
+                    int textCount = isV5 ? reader.ReadInt32() : 0;
 
                     parsedEntries.Add(new YurisScriptListEntry(
                         sequence,
                         scriptPath,
-                        lastWriteTimeHigh,
-                        lastWriteTimeLow,
+                        (uint)(fileTime >> 32),
+                        (uint)fileTime,
                         variableCount,
                         labelCount,
-                        textCount,
-                        unknown0,
-                        unknown1));
+                        textCount));
                 }
 
                 if (stream.Position != stream.Length)
@@ -224,15 +222,45 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         public string ScriptPath { get; }
         public uint LastWriteTimeHigh { get; }
         public uint LastWriteTimeLow { get; }
-        public uint VariableCount { get; }
-        public uint LabelCount { get; }
-        public uint TextCount { get; }
-        public uint Unknown0 { get; }
-        public uint Unknown1 { get; }
+        public int VariableCount { get; }
+        public int LabelCount { get; }
+        public int TextCount { get; }
 
+        /// <summary>
+        /// The original FILETIME value, reconstructed without losing precision.
+        /// </summary>
         public ulong LastWriteTimeFileTime =>
             ((ulong)LastWriteTimeHigh << 32) | LastWriteTimeLow;
 
+        /// <summary>
+        /// A negative variable count marks an index entry that has no
+        /// corresponding compiled YSTB file (for example, global.yst).
+        /// </summary>
+        public bool HasCompiledFile => VariableCount >= 0;
+
+        // Compatibility aliases for callers built against the earlier parser.
+        public uint Unknown0 => unchecked((uint)VariableCount);
+        public uint Unknown1 => unchecked((uint)LabelCount);
+
+        public YurisScriptListEntry(
+            uint sequence,
+            string scriptPath,
+            uint lastWriteTimeHigh,
+            uint lastWriteTimeLow,
+            int variableCount,
+            int labelCount,
+            int textCount)
+        {
+            Sequence = sequence;
+            ScriptPath = scriptPath;
+            LastWriteTimeHigh = lastWriteTimeHigh;
+            LastWriteTimeLow = lastWriteTimeLow;
+            VariableCount = variableCount;
+            LabelCount = labelCount;
+            TextCount = textCount;
+        }
+
+        [Obsolete("Use the constructor with signed variable, label and text counts.")]
         public YurisScriptListEntry(
             uint sequence,
             string scriptPath,
@@ -243,16 +271,15 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             uint textCount,
             uint unknown0,
             uint unknown1)
+            : this(
+                sequence,
+                scriptPath,
+                lastWriteTimeHigh,
+                lastWriteTimeLow,
+                unchecked((int)unknown0),
+                unchecked((int)unknown1),
+                unchecked((int)textCount))
         {
-            Sequence = sequence;
-            ScriptPath = scriptPath;
-            LastWriteTimeHigh = lastWriteTimeHigh;
-            LastWriteTimeLow = lastWriteTimeLow;
-            VariableCount = variableCount;
-            LabelCount = labelCount;
-            TextCount = textCount;
-            Unknown0 = unknown0;
-            Unknown1 = unknown1;
         }
 
         public string GetCompiledFileName()
