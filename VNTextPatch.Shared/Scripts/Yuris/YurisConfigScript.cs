@@ -30,7 +30,8 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         private const uint V2VersionUpperBound = 466;
         private const int ImageTypeSlotCount = 8;
         private const int SoundTypeSlotCount = 4;
-        private const string JsonFormat = "vntextpatch.yuris-config.v1";
+        private const string JsonFormat = "vntextpatch.yuris-config.v2";
+        private const string LegacyJsonFormat = "vntextpatch.yuris-config.v1";
 
         private static readonly YurisConfigJsonContext JsonContext = new(
             new JsonSerializerOptions(YurisConfigJsonContext.Default.Options)
@@ -242,11 +243,11 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
             // Unknown/reserved fields are exported for inspection but are not
             // rewritten. All recognized settings below remain editable.
-            EnsureUnchangedUInt32(root, "unknown0", ReadUInt32(_data, 8));
+            EnsureUnchangedUInt32(root, "padding0", "unknown0", ReadUInt32(_data, 8));
 
             if (Layout == YurisConfigLayout.V5)
             {
-                EnsureUnchangedUInt32(root, "unknown1", ReadUInt32(_data, 72));
+                EnsureUnchangedUInt32(root, "padding1", "unknown1", ReadUInt32(_data, 72));
                 PatchUInt32(root, header, "filePriorityDebug", 64);
                 PatchUInt32(root, header, "filePriorityRelease", 68);
             }
@@ -298,7 +299,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 Magic = "YSCF",
                 Version = Version,
                 Layout = Layout.ToString(),
-                Unknown0 = ReadUInt32(data, 8),
+                Padding0 = ReadUInt32(data, 8),
                 Compile = ReadUInt32(data, 12),
                 ScreenWidth = ReadUInt32(data, 16),
                 ScreenHeight = ReadUInt32(data, 20),
@@ -313,7 +314,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 FilePriorityDev = ReadUInt32(data, 60),
                 FilePriorityDebug = Layout == YurisConfigLayout.V5 ? ReadUInt32(data, 64) : null,
                 FilePriorityRelease = Layout == YurisConfigLayout.V5 ? ReadUInt32(data, 68) : null,
-                Unknown1 = Layout == YurisConfigLayout.V5 ? ReadUInt32(data, 72) : null,
+                Padding1 = Layout == YurisConfigLayout.V5 ? ReadUInt32(data, 72) : null,
                 HasCaption = _hasCaption,
                 CaptionLengthField = _captionLengthField,
                 Caption = _hasCaption ? ReadCaption(data) : null
@@ -327,7 +328,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
             if (!root.TryGetProperty("format", out JsonElement format) ||
                 format.ValueKind != JsonValueKind.String ||
-                format.GetString() != JsonFormat)
+                (format.GetString() != JsonFormat && format.GetString() != LegacyJsonFormat))
                 throw new InvalidDataException("Unrecognized YSCF JSON format.");
 
             if (!root.TryGetProperty("magic", out JsonElement magic) ||
@@ -388,6 +389,18 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         }
 
         private static void EnsureUnchangedUInt32(
+            JsonElement root,
+            string propertyName,
+            string legacyPropertyName,
+            uint originalValue)
+        {
+            // v1 exports called these fields unknown0/unknown1. v2 uses their
+            // documented meaning from yuri.md: reserved padding words.
+            EnsureUnchangedUInt32(root, propertyName, originalValue);
+            EnsureUnchangedUInt32(root, legacyPropertyName, originalValue);
+        }
+
+        private static void EnsureUnchangedUInt32(
             JsonElement root, string propertyName, uint originalValue)
         {
             if (!root.TryGetProperty(propertyName, out JsonElement value))
@@ -437,7 +450,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
         private byte[] BuildPatchedData(byte[] header, string caption)
         {
-            byte[] captionBytes = _encoding.WriteEncoding.GetBytes(caption);
+            byte[] captionBytes = _encoding.GetWriteBytes(caption);
             if (captionBytes.Length > ushort.MaxValue)
                 throw new InvalidDataException("YSCF caption exceeds the 16-bit length limit.");
 
@@ -458,7 +471,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             if (data.Length != _headerSize + length)
                 throw new InvalidDataException("YSCF caption is unavailable for this layout.");
 
-            return StringUtil.SjisEncoding.GetString(data, _headerSize, length);
+            return _encoding.ReadEncoding.GetString(data, _headerSize, length);
         }
 
         private static uint ReadUInt32(byte[] data, int offset) =>
@@ -490,7 +503,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             public string Magic { get; set; } = "YSCF";
             public uint Version { get; set; }
             public string Layout { get; set; } = string.Empty;
-            public uint Unknown0 { get; set; }
+            public uint Padding0 { get; set; }
             public uint Compile { get; set; }
             public uint ScreenWidth { get; set; }
             public uint ScreenHeight { get; set; }
@@ -505,7 +518,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             public uint FilePriorityDev { get; set; }
             public uint? FilePriorityDebug { get; set; }
             public uint? FilePriorityRelease { get; set; }
-            public uint? Unknown1 { get; set; }
+            public uint? Padding1 { get; set; }
             public bool HasCaption { get; set; }
             public ushort CaptionLengthField { get; set; }
             public string? Caption { get; set; }

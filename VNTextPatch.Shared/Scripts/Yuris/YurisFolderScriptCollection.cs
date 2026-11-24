@@ -47,7 +47,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                     ? StringComparer.OrdinalIgnoreCase
                     : StringComparer.Ordinal);
 
-            foreach (YurisScriptListEntry entry in _scriptList.Entries)
+            foreach (YurisScriptListEntry entry in _scriptList.Entries.Where(entry => entry.HasCompiledFile)) 
             {
                 string key = NormalizeScriptName(entry.ScriptPath);
                 if (key.Length == 0)
