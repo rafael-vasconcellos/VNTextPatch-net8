@@ -313,7 +313,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             {
                 case YurisAttributeType.Raw:
                 {
-                    byte[] data = _encoding.WriteEncoding.GetBytes(value);
+                    byte[] data = _encoding.GetWriteBytes(value);
                     StandardControlCodesToYuris(data, 0, data.Length);
                     return data;
                 }
@@ -323,12 +323,13 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                     value = value.Replace("\r", "");
                     value = QuoteString(value);
 
-                    int numBytes = _encoding.WriteEncoding.GetByteCount(value);
+                    byte[] encoded = _encoding.GetWriteBytes(value);
+                    int numBytes = encoded.Length;
                     byte[] data = new byte[3 + numBytes];
                     data[0] = 0x4D;
                     data[1] = (byte)numBytes;
                     data[2] = (byte)(numBytes >> 8);
-                    _encoding.WriteEncoding.GetBytes(value, 0, value.Length, data, 3);
+                    encoded.CopyTo(data, 3);
                     return data;
                 }
 

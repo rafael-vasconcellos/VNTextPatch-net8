@@ -195,6 +195,22 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         }
 
         /// <summary>
+        /// Encodes text for serialization into YU-RIS resources. Encoding.GetBytes(string)
+        /// runs a counting pass and then a writing pass, and both invoke the encoder
+        /// fallback, so unsupported GBK characters would be logged twice. Writing
+        /// straight into a worst-case sized buffer uses a single pass.
+        /// </summary>
+        public byte[] GetWriteBytes(string value)
+        {
+            if (!UsesGbk)
+                return WriteEncoding.GetBytes(value);
+
+            byte[] buffer = new byte[WriteEncoding.GetMaxByteCount(value.Length)];
+            int count = WriteEncoding.GetBytes(value, 0, value.Length, buffer, 0);
+            return buffer.AsSpan(0, count).ToArray();
+        }
+
+        /// <summary>
         /// Tests whether a byte begins a multibyte character in the selected
         /// output encoding. This is used when scanning serialized control codes.
         /// </summary>
