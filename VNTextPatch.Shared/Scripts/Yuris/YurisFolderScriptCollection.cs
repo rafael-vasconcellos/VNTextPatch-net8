@@ -64,7 +64,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             get
             {
                 IEnumerable<string> indexedScripts =
-                    _scriptList.Entries.Select(entry => entry.ScriptPath);
+                    _scriptList.Entries
+                        .Where(entry => entry.HasCompiledFile)
+                        .Select(entry => entry.ScriptPath);
 
                 // YSTL lists compiled scenario scripts, not the engine's
                 // auxiliary metadata files. Include those separately so that
@@ -191,6 +193,11 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
             foreach (YurisScriptListEntry entry in _scriptList.Entries)
             {
+                // Some index entries intentionally have no corresponding
+                // compiled YSTB file (VariableCount < 0).
+                if (!entry.HasCompiledFile)
+                    continue;
+
                 string relativePath = NormalizeScriptName(entry.ScriptPath);
                 string sourcePath = GetFilePath(relativePath);
                 string destinationPath = Path.GetFullPath(Path.Combine(
