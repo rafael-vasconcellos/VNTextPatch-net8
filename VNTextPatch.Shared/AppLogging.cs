@@ -44,7 +44,7 @@ namespace VNTextPatch.Shared
                 LogLevel.Debug => ("dbug", "\u001b[37m"),
                 LogLevel.Information => ("info", "\u001b[32m"),
                 LogLevel.Warning => ("warn", "\u001b[33m"),
-                LogLevel.Error => ("fail", "\u001b[30;41m"),
+                LogLevel.Error => ("fail", "\u001b[31m"),
                 LogLevel.Critical => ("crit", "\u001b[37;41m"),
                 _ => ("none", "\u001b[39m")
             };
