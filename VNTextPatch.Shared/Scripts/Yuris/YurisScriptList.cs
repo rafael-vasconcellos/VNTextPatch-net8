@@ -115,10 +115,73 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         public void WritePatched(IEnumerable<ScriptString> strings, ScriptLocation location)
         {
             // The YSTL index contains metadata, not translatable strings.
-            // Do not rewrite it as part of the normal translation pipeline.
             using IEnumerator<ScriptString> enumerator = strings.GetEnumerator();
             if (enumerator.MoveNext())
                 throw new InvalidDataException("YSTL does not contain translatable strings.");
+
+            string path = location.ToFilePath();
+            string? directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+
+            File.WriteAllBytes(path, Serialize());
+        }
+
+        /// <summary>
+        /// Serializes the parsed script index.
+        ///
+        /// The record layout defaults to the layout detected while parsing,
+        /// rather than being inferred again from the header version. This is
+        /// important for commercial builds whose header version and binary
+        /// layout do not follow the same public release number.
+        /// </summary>
+        /// <param name="encoding">Path encoding. Defaults to Windows-31J / CP932.</param>
+        /// <param name="useV5Layout">
+        /// Optional override for the record layout. When null, the detected
+        /// layout is preserved.
+        /// </param>
+        /// <param name="headerVersion">
+        /// Optional version value to write in the header. This does not select
+        /// the record layout.
+        /// </param>
+        public byte[] Serialize(
+            Encoding? encoding = null,
+            bool? useV5Layout = null,
+            uint? headerVersion = null)
+        {
+            encoding ??= StringUtil.SjisEncoding;
+            bool writeV5 = useV5Layout ?? UsesV5Layout;
+
+            using var stream = new MemoryStream();
+            using (var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true))
+            {
+                writer.Write(Encoding.ASCII.GetBytes("YSTL"));
+                writer.Write(headerVersion ?? Version);
+                writer.Write(checked((uint)Entries.Count));
+
+                for (int i = 0; i < Entries.Count; i++)
+                {
+                    YurisScriptListEntry entry = Entries[i];
+                    if (entry.Sequence != (uint)i)
+                    {
+                        throw new InvalidDataException(
+                            $"YSTL entry {i} has sequence number {entry.Sequence}; expected {i}.");
+                    }
+
+                    byte[] pathBytes = encoding.GetBytes(entry.ScriptPath);
+                    writer.Write(entry.Sequence);
+                    writer.Write(checked((uint)pathBytes.Length));
+                    writer.Write(pathBytes);
+                    writer.Write(entry.LastWriteTimeFileTime);
+                    writer.Write(entry.VariableCount);
+                    writer.Write(entry.LabelCount);
+
+                    if (writeV5)
+                        writer.Write(entry.TextCount);
+                }
+            }
+
+            return stream.ToArray();
         }
 
         private static bool TryParseEntries(
