@@ -131,8 +131,43 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             _headerSize = useV2 ? V2HeaderSize : V5HeaderSize;
             _hasCaption = useV2 ? v2HasCaption : v5HasCaption;
             _captionLengthField = useV2 ? v2CaptionLength : v5CaptionLength;
+
+            int availableCaptionBytes = data.Length - _headerSize;
+            if (_hasCaption &&
+                availableCaptionBytes > _captionLengthField &&
+                IsPrintableCaption(data.AsSpan(_headerSize, availableCaptionBytes)))
+            {
+                Console.Error.WriteLine(
+                    $"[YU-RIS] Warning: YSCF version {version} declares a caption length of " +
+                    $"{_captionLengthField} bytes, but its text payload contains " +
+                    $"{availableCaptionBytes} bytes. Correcting the in-memory length.");
+
+                _captionLengthField = checked((ushort)availableCaptionBytes);
+                BinaryPrimitives.WriteUInt16LittleEndian(
+                    data.AsSpan(_captionLengthOffset, sizeof(ushort)),
+                    _captionLengthField);
+            }
+
             Version = version;
             _data = (byte[])data.Clone();
+        }
+
+        private static bool IsPrintableCaption(ReadOnlySpan<byte> bytes)
+        {
+            try
+            {
+                Encoding strictEncoding = (Encoding)StringUtil.SjisEncoding.Clone();
+                strictEncoding.DecoderFallback = DecoderFallback.ExceptionFallback;
+                string value = strictEncoding.GetString(bytes);
+
+                return value.Length > 0 &&
+                       value.All(character =>
+                           !char.IsControl(character) && character != '\uFFFD');
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
         }
 
         private static bool TryValidateLayout(
@@ -160,10 +195,15 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 return true;
             }
 
-            if (data.Length != headerSize + captionLength)
+            if (data.Length < headerSize + captionLength)
                 return false;
 
-            hasCaption = true;
+            if (data.Length > headerSize + captionLength &&
+                (data.Length - headerSize > ushort.MaxValue ||
+                 !IsPrintableCaption(data.AsSpan(headerSize))))
+                return false;
+
+            hasCaption = captionLength > 0;
             return true;
         }
 
