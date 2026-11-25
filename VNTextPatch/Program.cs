@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,6 +13,7 @@ namespace VNTextPatch
 {
     public static class Program
     {
+        private static readonly ILogger<Program> Logger = AppLogging.CreateLogger<Program>();
         public static void Main(string[] args)
         {
             Options options = Options.Parse(args, out args);
@@ -39,14 +41,14 @@ namespace VNTextPatch
                         break;
 
                     default:
-                        Console.WriteLine($"Unknown operation: {operation}");
+                        Logger.LogInformation($"Unknown operation: {operation}");
                         PrintUsage();
                         break;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Logger.LogError(ex.Message);
             }
         }
 
@@ -57,7 +59,7 @@ namespace VNTextPatch
                 PrintUsage();
                 return;
             }
-            Console.WriteLine("Extracting to local path");
+            Logger.LogInformation("Extracting to local path");
 
             string inputPath = Path.GetFullPath(args[1]);
             string textPath = Path.GetFullPath(args[2]);
@@ -277,7 +279,7 @@ namespace VNTextPatch
                 string? firstFilePath = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).FirstOrDefault();
                 if (firstFilePath == null)
                 {
-                    Console.WriteLine($"Folder {path} is empty");
+                    Logger.LogInformation($"Folder {path} is empty");
                     return false;
                 }
 
@@ -286,7 +288,7 @@ namespace VNTextPatch
                 return true;
             }
 
-            Console.WriteLine($"File/folder {path} does not exist");
+            Logger.LogInformation($"File/folder {path} does not exist");
             return false;
         }
 
@@ -316,32 +318,32 @@ namespace VNTextPatch
         {
             string? assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
             string? version = Assembly.GetExecutingAssembly().GetName().Version?.ToString();
-            Console.WriteLine($"VNTextPatch v. {version}");
-            Console.WriteLine($"Usage:\n");
+            Logger.LogInformation($"VNTextPatch v. {version}");
+            Logger.LogInformation($"Usage:\n");
 
-            Console.WriteLine($"{assemblyName} extractlocal <source> <scripts>");
-            Console.WriteLine($"{assemblyName} insertlocal <source> <scripts> <patched>");
-            Console.WriteLine($"{assemblyName} insertgdocs <source> <spreadsheetId> <patched>\n");
-            Console.WriteLine($"    <source>     folder containing original game files");
-            Console.WriteLine($"    <scripts>    folder to receive text files");
-            Console.WriteLine($"    <patched>    folder to receive patched game files");
-            Console.WriteLine($"    <spreadsheetId>    ID of a Google Docs spreadsheet\n");
+            Logger.LogInformation($"{assemblyName} extractlocal <source> <scripts>");
+            Logger.LogInformation($"{assemblyName} insertlocal <source> <scripts> <patched>");
+            Logger.LogInformation($"{assemblyName} insertgdocs <source> <spreadsheetId> <patched>\n");
+            Logger.LogInformation($"    <source>     folder containing original game files");
+            Logger.LogInformation($"    <scripts>    folder to receive text files");
+            Logger.LogInformation($"    <patched>    folder to receive patched game files");
+            Logger.LogInformation($"    <spreadsheetId>    ID of a Google Docs spreadsheet\n");
 
-            Console.WriteLine($"Excel:\n");
-            Console.WriteLine($"{assemblyName} extractlocal <source> <script.xlsx>");
-            Console.WriteLine($"{assemblyName} insertlocal <source> <script.xlsx> <patched>\n");
+            Logger.LogInformation($"Excel:\n");
+            Logger.LogInformation($"{assemblyName} extractlocal <source> <script.xlsx>");
+            Logger.LogInformation($"{assemblyName} insertlocal <source> <script.xlsx> <patched>\n");
 
-            Console.WriteLine($"YAML/YML:\n");
-            Console.WriteLine($"{assemblyName} extractlocal <source> <script.yaml>");
-            Console.WriteLine($"{assemblyName} insertlocal <source> <script.yaml> <patched>\n");
+            Logger.LogInformation($"YAML/YML:\n");
+            Logger.LogInformation($"{assemblyName} extractlocal <source> <script.yaml>");
+            Logger.LogInformation($"{assemblyName} insertlocal <source> <script.yaml> <patched>\n");
 
-            Console.WriteLine($"YAML/YML wrapped in markdown with VNDB data:\n");
-            Console.WriteLine($"{assemblyName} extractlocal <source> <v2002.md>");
-            Console.WriteLine($"{assemblyName} insertlocal <source> <v2002.md> <patched>\n");
+            Logger.LogInformation($"YAML/YML wrapped in markdown with VNDB data:\n");
+            Logger.LogInformation($"{assemblyName} extractlocal <source> <v2002.md>");
+            Logger.LogInformation($"{assemblyName} insertlocal <source> <v2002.md> <patched>\n");
 
-            Console.WriteLine($"Options:");
-            Console.WriteLine($"    -h, --help    Displays this screen");
-            Console.WriteLine($"    --output=<value>    Output format of the script text files. JSON or JSONL. Default is JSONL");
+            Logger.LogInformation($"Options:");
+            Logger.LogInformation($"    -h, --help    Displays this screen");
+            Logger.LogInformation($"    --output=<value>    Output format of the script text files. JSON or JSONL. Default is JSONL");
         }
 
         private class Options

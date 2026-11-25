@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.IO;
@@ -19,6 +20,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
     /// </summary>
     public sealed class YurisEncoding
     {
+        private static readonly ILogger<YurisEncoding> Logger = AppLogging.CreateLogger<YurisEncoding>();
         private static readonly Lazy<Encoding> GbkEncoding = new(CreateGbkEncoding);
 
         private readonly string[] _supportedExecutables = [];
@@ -310,7 +312,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                     int occurrence = Occurrences.AddOrUpdate(
                         codePoint, 1, static (_, count) => count + 1);
 
-                    Console.WriteLine(
+                    Logger.LogInformation(
                         $"[YU-RIS][GBK] Unsupported character U+{codePoint:X4} " +
                         $"replaced with \"{Replacement}\" " +
                         $"(occurrence {occurrence}).");

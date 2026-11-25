@@ -1,4 +1,6 @@
-﻿namespace VNTextPatch.Shared
+﻿using Microsoft.Extensions.Logging;
+
+namespace VNTextPatch.Shared
 {
     /// <summary>
     /// Optional contract for scripts whose useful data is structured metadata
@@ -37,11 +39,11 @@
             if (needsExport)
             {
                 ExportStructuredData(destination);
-                Console.WriteLine($"{source.ScriptName} -> {textScriptName}: structured metadata");
+                AppLogging.CreateLogger<IStructuredScriptData>().LogInformation($"{source.ScriptName} -> {textScriptName}: structured metadata");
             }
             else
             {
-                Console.WriteLine($"{source.ScriptName}: structured metadata already exists; keeping it");
+                AppLogging.CreateLogger<IStructuredScriptData>().LogInformation($"{source.ScriptName}: structured metadata already exists; keeping it");
             }
         }
     }

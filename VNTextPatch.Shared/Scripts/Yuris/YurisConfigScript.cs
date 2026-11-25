@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,6 +24,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
     /// </summary>
     public sealed partial class YurisConfigScript : IScript, IStructuredScriptData
     {
+        private static readonly ILogger<YurisConfigScript> Logger = AppLogging.CreateLogger<YurisConfigScript>();
         private const int V2CaptionLengthOffset = 0x40;
         private const int V2HeaderSize = V2CaptionLengthOffset + sizeof(ushort);
         private const int V5CaptionLengthOffset = 0x4C;
@@ -137,7 +139,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 availableCaptionBytes > _captionLengthField &&
                 IsPrintableCaption(data.AsSpan(_headerSize, availableCaptionBytes)))
             {
-                Console.Error.WriteLine(
+                Logger.LogWarning(
                     $"[YU-RIS] Warning: YSCF version {version} declares a caption length of " +
                     $"{_captionLengthField} bytes, but its text payload contains " +
                     $"{availableCaptionBytes} bytes. Correcting the in-memory length.");

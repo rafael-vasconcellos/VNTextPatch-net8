@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +8,7 @@ namespace VNTextPatch.Shared
 {
     public class Extracter
     {
+        private static readonly ILogger<Extracter> Logger = AppLogging.CreateLogger<Extracter>();
         private readonly IScriptCollection _inputCollection;
         private readonly IScriptCollection _textCollection;
 
@@ -72,7 +74,7 @@ namespace VNTextPatch.Shared
 
             TotalLines += scriptLines;
             TotalCharacters += scriptChars;
-            Console.WriteLine($"{inputScriptName} -> {textScriptName}: {scriptLines} lines and {scriptChars} characters");
+            Logger.LogInformation($"{inputScriptName} -> {textScriptName}: {scriptLines} lines and {scriptChars} characters");
         }
 
         public void ExtractAll()
@@ -106,8 +108,8 @@ namespace VNTextPatch.Shared
 
         public void PrintExtractionStatistics()
         {
-            Console.WriteLine($"Total lines: {TotalLines}");
-            Console.WriteLine($"Total characters: {TotalCharacters}");
+            Logger.LogInformation($"Total lines: {TotalLines}");
+            Logger.LogInformation($"Total characters: {TotalCharacters}");
         }
     }
 }

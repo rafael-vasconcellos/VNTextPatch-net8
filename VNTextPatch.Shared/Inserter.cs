@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +8,7 @@ namespace VNTextPatch.Shared
 {
     public class Inserter
     {
+        private static readonly ILogger<Inserter> Logger = AppLogging.CreateLogger<Inserter>();
         private readonly IScriptCollection _inputCollection;
         private readonly IScriptCollection _textCollection;
         private readonly IScriptCollection _outputCollection;
@@ -41,16 +43,16 @@ namespace VNTextPatch.Shared
             switch (statistics)
             {
                 case ISheetStatistics sheetStatistics:
-                    Console.WriteLine($"Total lines: {sheetStatistics.Total}");
-                    Console.WriteLine($"Translated:  {sheetStatistics.Translated,-10} ({(float)sheetStatistics.Translated / sheetStatistics.Total:P2})");
-                    Console.WriteLine($"Checked:     {sheetStatistics.Checked,-10} ({(float)sheetStatistics.Checked / sheetStatistics.Total:P2})");
-                    Console.WriteLine($"Edited:      {sheetStatistics.Edited,-10} ({(float)sheetStatistics.Edited / sheetStatistics.Total:P2})");
+                    Logger.LogInformation($"Total lines: {sheetStatistics.Total}");
+                    Logger.LogInformation($"Translated:  {sheetStatistics.Translated,-10} ({(float)sheetStatistics.Translated / sheetStatistics.Total:P2})");
+                    Logger.LogInformation($"Checked:     {sheetStatistics.Checked,-10} ({(float)sheetStatistics.Checked / sheetStatistics.Total:P2})");
+                    Logger.LogInformation($"Edited:      {sheetStatistics.Edited,-10} ({(float)sheetStatistics.Edited / sheetStatistics.Total:P2})");
                     break;
 
                 default:
-                    Console.WriteLine($"Translated:  {Translated,-10}");
-                    Console.WriteLine($"Total lines: {Total}");
-                    Console.WriteLine($"Rate: {(float)Translated / Total:P2}");
+                    Logger.LogInformation($"Translated:  {Translated,-10}");
+                    Logger.LogInformation($"Total lines: {Total}");
+                    Logger.LogInformation($"Rate: {(float)Translated / Total:P2}");
                     break;
             }
         }
@@ -76,7 +78,7 @@ namespace VNTextPatch.Shared
                 // in the editable JSON remain byte-for-byte intact.
                 _outputCollection.Add(outputScriptName, inputLocation);
                 structured.ImportStructuredData(textLocation, outputLocation);
-                Console.WriteLine($"{inputScriptName} -> {outputScriptName}: structured metadata applied");
+                Logger.LogInformation($"{inputScriptName} -> {outputScriptName}: structured metadata applied");
                 return;
             }
 
@@ -84,7 +86,7 @@ namespace VNTextPatch.Shared
             List<ScriptString> strings = _textScript.GetStrings().ToList();
             int inputCount = _inputCollection.GetMessageStrings(inputScriptName).Count;
             int textCount = strings.Count(s => s.Type == ScriptStringType.Message);
-            Console.WriteLine($"{inputScriptName}: {(float)textCount / inputCount:P2} ({textCount})");
+            Logger.LogInformation($"{inputScriptName}: {(float)textCount / inputCount:P2} ({textCount})");
             Translated += textCount; Total += inputCount;
 
             _outputCollection.Add(outputScriptName);

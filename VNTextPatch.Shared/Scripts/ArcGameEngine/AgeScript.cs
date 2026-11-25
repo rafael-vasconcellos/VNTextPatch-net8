@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,7 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
 {
     public class AgeScript : IScript
     {
+        private static readonly ILogger<AgeScript> Logger = AppLogging.CreateLogger<AgeScript>();
         private byte[] _data = [];
         private List<int> _addrOffsets = [];
         private AgeDisassembler _disassembler = null!;
@@ -76,7 +78,7 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
                 }
                 catch (ArgumentException)
                 {
-                    Console.WriteLine("exp -> " + location.ToFilePath());
+                    Logger.LogInformation("exp -> " + location.ToFilePath());
                     return;
                 }
             }
