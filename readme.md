@@ -23,14 +23,18 @@ Base fork: [hentaitaku/VNTranslationTools](https://github.com/hentaitaku/VNTrans
 + upgraded project to latest LTS .NET version
 + **Removed** suport for KiriKiri SCN Scripts because **FreeMote** uses net4.8
 + implemented multiplatform `ProportionalWordWrapper` using SkiaSharp
-+ creates the output folder if it doesn't currently exists
++ added useful scripts in `scripts`
+  + linux and WASM releases alonside windows
+  + simplified multiplatform installation
 + enhance extraction statistics logs
++ enhanced logging with `Microsoft.Extensions.Logging`
 + removed the dependency on `names.xml` and `template.xlsx`
++ flexibilize the usage of `settings.xml`
++ auto generate `settings.xml` after `extractlocal`
++ creates the output folder if it doesn't currently exists
 + add `-h` and `--help` options
 + add `JsonlScript` for handling JSON Lines format
 + add output format option and improve usage instructions
-+ flexibilize the usage of `settings.xml`
-+ auto generate `settings.xml` after `extractlocal`
 + add `YamlScript` for handling YAML format. you can generate a single YAML file containing all of the game dialogue, so you can throw it in the AI chatbot of your preference.
 + enhance insertion statistics logs for all scripts
 + add `MarkdownScriptCollection` for handling the YAML/YML wrapped in markdown with VNDB data
