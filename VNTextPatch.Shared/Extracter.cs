@@ -8,7 +8,7 @@ namespace VNTextPatch.Shared
 {
     public class Extracter
     {
-        private static readonly ILogger<Extracter> Logger = AppLogging.CreateLogger<Extracter>();
+        private static readonly ILogger Logger = AppLogging.Default;
         private readonly IScriptCollection _inputCollection;
         private readonly IScriptCollection _textCollection;
 

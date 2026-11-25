@@ -24,7 +24,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
     /// </summary>
     public sealed partial class YurisConfigScript : IScript, IStructuredScriptData
     {
-        private static readonly ILogger<YurisConfigScript> Logger = AppLogging.CreateLogger<YurisConfigScript>();
+        private static readonly ILogger Logger = AppLogging.Default;
         private const int V2CaptionLengthOffset = 0x40;
         private const int V2HeaderSize = V2CaptionLengthOffset + sizeof(ushort);
         private const int V5CaptionLengthOffset = 0x4C;

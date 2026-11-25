@@ -8,7 +8,7 @@ namespace VNTextPatch.Shared
 {
     public class Inserter
     {
-        private static readonly ILogger<Inserter> Logger = AppLogging.CreateLogger<Inserter>();
+        private static readonly ILogger Logger = AppLogging.Default;
         private readonly IScriptCollection _inputCollection;
         private readonly IScriptCollection _textCollection;
         private readonly IScriptCollection _outputCollection;

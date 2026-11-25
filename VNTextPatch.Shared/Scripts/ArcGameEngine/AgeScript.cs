@@ -11,7 +11,7 @@ namespace VNTextPatch.Shared.Scripts.ArcGameEngine
 {
     public class AgeScript : IScript
     {
-        private static readonly ILogger<AgeScript> Logger = AppLogging.CreateLogger<AgeScript>();
+        private static readonly ILogger Logger = AppLogging.Default;
         private byte[] _data = [];
         private List<int> _addrOffsets = [];
         private AgeDisassembler _disassembler = null!;

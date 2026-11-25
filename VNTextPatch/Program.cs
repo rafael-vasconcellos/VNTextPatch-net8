@@ -13,7 +13,7 @@ namespace VNTextPatch
 {
     public static class Program
     {
-        private static readonly ILogger<Program> Logger = AppLogging.CreateLogger<Program>();
+        private static readonly ILogger Logger = AppLogging.Default;
         public static void Main(string[] args)
         {
             Options options = Options.Parse(args, out args);

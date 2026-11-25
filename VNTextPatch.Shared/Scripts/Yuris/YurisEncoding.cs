@@ -20,7 +20,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
     /// </summary>
     public sealed class YurisEncoding
     {
-        private static readonly ILogger<YurisEncoding> Logger = AppLogging.CreateLogger<YurisEncoding>();
+        private static readonly ILogger Logger = AppLogging.Default;
         private static readonly Lazy<Encoding> GbkEncoding = new(CreateGbkEncoding);
 
         private readonly string[] _supportedExecutables = [];

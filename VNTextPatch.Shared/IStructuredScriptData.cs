@@ -39,11 +39,11 @@ namespace VNTextPatch.Shared
             if (needsExport)
             {
                 ExportStructuredData(destination);
-                AppLogging.CreateLogger<IStructuredScriptData>().LogInformation($"{source.ScriptName} -> {textScriptName}: structured metadata");
+                AppLogging.Default.LogInformation($"{source.ScriptName} -> {textScriptName}: structured metadata");
             }
             else
             {
-                AppLogging.CreateLogger<IStructuredScriptData>().LogInformation($"{source.ScriptName}: structured metadata already exists; keeping it");
+                AppLogging.Default.LogInformation($"{source.ScriptName}: structured metadata already exists; keeping it");
             }
         }
     }

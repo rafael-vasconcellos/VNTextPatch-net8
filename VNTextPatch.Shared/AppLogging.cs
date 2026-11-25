@@ -8,5 +8,7 @@ namespace VNTextPatch.Shared
             Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole());
 
         public static ILogger<T> CreateLogger<T>() => LoggerFactory.CreateLogger<T>();
+
+        public static ILogger Default { get; } = LoggerFactory.CreateLogger("VNTextPatch");
     }
 }
