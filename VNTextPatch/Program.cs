@@ -41,7 +41,7 @@ namespace VNTextPatch
                         break;
 
                     default:
-                        Logger.LogInformation($"Unknown operation: {operation}");
+                        Logger.LogError($"Unknown operation: {operation}");
                         PrintUsage();
                         break;
                 }
@@ -279,7 +279,7 @@ namespace VNTextPatch
                 string? firstFilePath = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).FirstOrDefault();
                 if (firstFilePath == null)
                 {
-                    Logger.LogInformation($"Folder {path} is empty");
+                    Logger.LogError($"Folder {path} is empty");
                     return false;
                 }
 
@@ -288,7 +288,7 @@ namespace VNTextPatch
                 return true;
             }
 
-            Logger.LogInformation($"File/folder {path} does not exist");
+            Logger.LogError($"File/folder {path} does not exist");
             return false;
         }
 

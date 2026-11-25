@@ -312,7 +312,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                     int occurrence = Occurrences.AddOrUpdate(
                         codePoint, 1, static (_, count) => count + 1);
 
-                    Logger.LogInformation(
+                    Logger.LogWarning(
                         $"[YU-RIS][GBK] Unsupported character U+{codePoint:X4} " +
                         $"replaced with \"{Replacement}\" " +
                         $"(occurrence {occurrence}).");
