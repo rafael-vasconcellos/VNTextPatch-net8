@@ -44,6 +44,7 @@
   
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.13" />
     <WasmExtraFilesToDeploy Include="settings.xml" />
     <None Include="settings.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
