@@ -2,7 +2,9 @@ using System.IO;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
 
 namespace VNTextPatch.Shared
 {
@@ -10,8 +12,12 @@ namespace VNTextPatch.Shared
     {
         private static readonly ILoggerFactory LoggerFactory =
             Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
-                builder.AddConsole(options => options.FormatterName = PlainConsoleFormatter.FormatterName)
-                       .AddConsoleFormatter<PlainConsoleFormatter, ConsoleFormatterOptions>());
+            {
+                builder.AddConsole(options => options.FormatterName = PlainConsoleFormatter.FormatterName);
+                builder.Services.TryAddEnumerable(
+                    ServiceDescriptor.Singleton<ConsoleFormatter, PlainConsoleFormatter>()
+                );
+            });
 
         public static ILogger<T> CreateLogger<T>() => LoggerFactory.CreateLogger<T>();
 
