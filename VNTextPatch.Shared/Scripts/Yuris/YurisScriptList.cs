@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using VNTextPatch.Shared.Util;
 
@@ -107,6 +108,63 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             Entries = entries!.AsReadOnly();
         }
 
+        /// <summary>
+        /// Replaces the index entries after validating the sequence and paths.
+        /// The caller can then serialize the modified index.
+        /// </summary>
+        public void ReplaceEntries(IEnumerable<YurisScriptListEntry> entries)
+        {
+            if (entries == null)
+                throw new ArgumentNullException(nameof(entries));
+
+            List<YurisScriptListEntry> replacement = entries.ToList();
+            var comparer = OperatingSystem.IsWindows()
+                ? StringComparer.OrdinalIgnoreCase
+                : StringComparer.Ordinal;
+            var paths = new HashSet<string>(comparer);
+
+            for (int i = 0; i < replacement.Count; i++)
+            {
+                YurisScriptListEntry entry = replacement[i]
+                    ?? throw new InvalidDataException($"YSTL entry {i} is null.");
+
+                if (entry.Sequence != (uint)i)
+                {
+                    throw new InvalidDataException(
+                        $"YSTL entry {i} has sequence number {entry.Sequence}; expected {i}.");
+                }
+
+                if (string.IsNullOrWhiteSpace(entry.ScriptPath))
+                {
+                    throw new InvalidDataException(
+                        $"YSTL entry {i} has an empty script path.");
+                }
+
+                string path = entry.ScriptPath.Replace('\\', '/');
+                string[] segments = path.Split('/');
+                if (path.StartsWith("/", StringComparison.Ordinal) ||
+                    (path.Length >= 2 &&
+                     char.IsLetter(path[0]) &&
+                     path[1] == ':') ||
+                    segments.Any(segment => segment == ".."))
+                {
+                    throw new InvalidDataException(
+                        $"YSTL entry {i} has an invalid relative script path: {entry.ScriptPath}");
+                }
+
+                string normalizedPath = string.Join(
+                    "/",
+                    segments.Where(segment => segment.Length > 0 && segment != "."));
+                if (normalizedPath.Length == 0 || !paths.Add(normalizedPath))
+                {
+                    throw new InvalidDataException(
+                        $"YSTL contains a duplicate script path: {entry.ScriptPath}");
+                }
+            }
+
+            Entries = replacement.AsReadOnly();
+        }
+
         public IEnumerable<ScriptString> GetStrings()
         {
             yield break;
@@ -151,12 +209,19 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         {
             encoding ??= StringUtil.SjisEncoding;
             bool writeV5 = useV5Layout ?? UsesV5Layout;
+            uint outputVersion = headerVersion ?? Version;
+            if (outputVersion < MinimumSupportedVersion ||
+                outputVersion >= MaximumSupportedVersionExclusive)
+            {
+                throw new InvalidDataException(
+                    $"Unsupported YSTL output version: {outputVersion}.");
+            }
 
             using var stream = new MemoryStream();
             using (var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true))
             {
                 writer.Write(Encoding.ASCII.GetBytes("YSTL"));
-                writer.Write(headerVersion ?? Version);
+                writer.Write(outputVersion);
                 writer.Write(checked((uint)Entries.Count));
 
                 for (int i = 0; i < Entries.Count; i++)
@@ -301,9 +366,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         /// </summary>
         public bool HasCompiledFile => VariableCount >= 0;
 
-        // Compatibility aliases for callers built against the earlier parser.
-        public uint Unknown0 => unchecked((uint)VariableCount);
-        public uint Unknown1 => unchecked((uint)LabelCount);
+        // Compatibility fields exposed by the earlier parser.
+        public uint Unknown0 { get; }
+        public uint Unknown1 { get; }
 
         public YurisScriptListEntry(
             uint sequence,
@@ -321,6 +386,8 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             VariableCount = variableCount;
             LabelCount = labelCount;
             TextCount = textCount;
+            Unknown0 = unchecked((uint)variableCount);
+            Unknown1 = unchecked((uint)labelCount);
         }
 
         [Obsolete("Use the constructor with signed variable, label and text counts.")]
@@ -339,10 +406,12 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 scriptPath,
                 lastWriteTimeHigh,
                 lastWriteTimeLow,
-                unchecked((int)unknown0),
-                unchecked((int)unknown1),
+                unchecked((int)variableCount),
+                unchecked((int)labelCount),
                 unchecked((int)textCount))
         {
+            Unknown0 = unknown0;
+            Unknown1 = unknown1;
         }
 
         public string GetCompiledFileName()
