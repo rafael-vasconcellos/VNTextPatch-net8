@@ -38,23 +38,26 @@ namespace VNTextPatch.Shared
             if (message is null && logEntry.Exception is null)
                 return;
 
-            string level = logEntry.LogLevel switch
+            (string level, string color) = logEntry.LogLevel switch
             {
-                LogLevel.Trace => "trce",
-                LogLevel.Debug => "dbug",
-                LogLevel.Information => "info",
-                LogLevel.Warning => "warn",
-                LogLevel.Error => "fail",
-                LogLevel.Critical => "crit",
-                _ => "none"
+                LogLevel.Trace => ("trce", "\u001b[37m"),
+                LogLevel.Debug => ("dbug", "\u001b[37m"),
+                LogLevel.Information => ("info", "\u001b[32m"),
+                LogLevel.Warning => ("warn", "\u001b[33m"),
+                LogLevel.Error => ("fail", "\u001b[30;41m"),
+                LogLevel.Critical => ("crit", "\u001b[37;41m"),
+                _ => ("none", "\u001b[39m")
             };
 
+            textWriter.Write(color);
             textWriter.Write(level);
+            if (logEntry.LogLevel is LogLevel.Information) textWriter.Write("\u001b[39m\u001b[49m");
             textWriter.Write(": ");
             textWriter.WriteLine(message);
 
             if (logEntry.Exception is not null)
                 textWriter.WriteLine(logEntry.Exception);
+            textWriter.Write("\u001b[39m\u001b[49m");
         }
     }
 
