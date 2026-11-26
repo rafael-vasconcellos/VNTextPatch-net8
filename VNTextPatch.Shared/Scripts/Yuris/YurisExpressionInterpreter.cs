@@ -90,7 +90,28 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         public static bool TryEvaluate(
             byte[] data, int offset, int length, out string? result)
         {
+            return TryEvaluate(
+                data, offset, length, out result,
+                out _, out _, out _);
+        }
+
+        /// <summary>
+        /// Attempts to evaluate an expression and also reports the source variable
+        /// when the result consists of constant character bytes.
+        /// </summary>
+        public static bool TryEvaluate(
+            byte[] data,
+            int offset,
+            int length,
+            out string? result,
+            out byte variableType,
+            out ushort variableId,
+            out bool isCharacterBytes)
+        {
             result = null;
+            variableType = 0;
+            variableId = 0;
+            isCharacterBytes = false;
 
             if (data == null || offset < 0 || length <= 0 ||
                 offset > data.Length - length)
@@ -293,6 +314,9 @@ namespace VNTextPatch.Shared.Scripts.Yuris
             if (finalValue.Kind == ValueKind.CharacterBytes &&
                 TryDecodeCharacterBytes(finalValue.Bytes!, out string decoded))
             {
+                variableType = finalValue.VariableScope;
+                variableId = finalValue.VariableId;
+                isCharacterBytes = true;
                 result = NormalizeLineBreaks(decoded);
                 return true;
             }
