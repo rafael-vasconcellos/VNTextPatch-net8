@@ -39,6 +39,7 @@ Base fork: [hentaitaku/VNTranslationTools](https://github.com/hentaitaku/VNTrans
 + enhance insertion statistics logs for all scripts
 + add `MarkdownScriptCollection` for handling the YAML/YML wrapped in markdown with VNDB data
 + add YU-RIS V2 and V5 configuration (yscfg)
++ enhance YU-RIS files parsing
 + Flexibilize `FolderScriptCollection` to contain different kind of files and exportations
 
 **Replaced libs:**  
