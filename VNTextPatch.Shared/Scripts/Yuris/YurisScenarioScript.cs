@@ -323,11 +323,32 @@ namespace VNTextPatch.Shared.Scripts.Yuris
 
                 case YurisAttributeType.Expression:
                 {
+                    // Some YU-RIS text expressions are built from constant
+                    // indexes into $_CHR rather than a pushstring. Preserve
+                    // that representation when patching so engine control
+                    // codes remain byte values in the character-byte stream.
+                    if (value.Length > 0 &&
+                        YurisExpressionInterpreter.TryEvaluate(
+                            _data, attr.ValueOffset, attr.ValueLength,
+                            out _, out byte variableType, out ushort variableId,
+                            out bool isCharacterBytes) &&
+                        isCharacterBytes)
+                    {
+                        byte[] characterBytes = _encoding.GetWriteBytes(value);
+                        StandardControlCodesToYuris(characterBytes, 0, characterBytes.Length);
+                        return BuildCharacterBytesExpression(
+                            variableType, variableId, characterBytes);
+                    }
+
                     value = value.Replace("\r", "");
                     value = QuoteString(value);
 
                     byte[] encoded = _encoding.GetWriteBytes(value);
                     int numBytes = encoded.Length;
+                    if (numBytes > ushort.MaxValue)
+                        throw new InvalidDataException(
+                            $"YU-RIS expression string is too long ({numBytes} bytes).");
+
                     byte[] data = new byte[3 + numBytes];
                     data[0] = 0x4D;
                     data[1] = (byte)numBytes;
@@ -339,6 +360,55 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                 default:
                     throw new NotSupportedException();
             }
+        }
+
+        private static byte[] BuildCharacterBytesExpression(
+            byte variableType, ushort variableId, byte[] bytes)
+        {
+            if (bytes.Length == 0)
+                throw new ArgumentException(
+                    "A character-byte expression must contain at least one byte.",
+                    nameof(bytes));
+
+            // Each byte is represented by three instructions:
+            // preparevarindexation (6 bytes), pushint16 (5 bytes), and
+            // performvarindexation (4 bytes). Subsequent values add a
+            // three-byte add instruction.
+            const int byteExpressionSize = 6 + 5 + 4;
+            const int addInstructionSize = 3;
+            int length = checked(bytes.Length * byteExpressionSize +
+                                 (bytes.Length - 1) * addInstructionSize);
+
+            using MemoryStream stream = new MemoryStream(length);
+            using BinaryWriter writer = new BinaryWriter(stream);
+
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                // preparevarindexation: $_CHR
+                writer.Write((byte)0x56);
+                writer.Write((ushort)3);
+                writer.Write(variableType);
+                writer.Write(variableId);
+
+                // pushint16: byte value used as the character-table index
+                writer.Write((byte)0x57);
+                writer.Write((ushort)2);
+                writer.Write((short)bytes[i]);
+
+                // performvarindexation
+                writer.Write((byte)0x29);
+                writer.Write((ushort)1);
+                writer.Write((byte)0);
+
+                if (i > 0)
+                {
+                    // add: concatenate the character bytes
+                    writer.Write((byte)0x2B);
+                    writer.Write((ushort)0);
+                }
+            }
+
+            return stream.ToArray();
         }
 
         private static string QuoteString(string str)
