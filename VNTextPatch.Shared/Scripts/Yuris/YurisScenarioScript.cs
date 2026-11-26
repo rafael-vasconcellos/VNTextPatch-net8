@@ -110,7 +110,10 @@ namespace VNTextPatch.Shared.Scripts.Yuris
                         }
                         else
                         {
-                            newData = Array.Empty<byte>();
+                            // Blank the remaining parts with a valid empty value (an empty string expression) 
+                            // rather than a zero-length one.
+                            //newData = Array.Empty<byte>();
+                            newData = SerializeAttributeValue(attrs[i], "");
                         }
 
                         patcher.PatchInt32(attrs[i].DescriptorOffset + 4, newData.Length);
