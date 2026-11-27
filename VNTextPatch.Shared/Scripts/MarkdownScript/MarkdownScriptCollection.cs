@@ -43,6 +43,17 @@ namespace VNTextPatch.Shared.Scripts
                 .GetAwaiter().GetResult();
             markdownBuilder.Heading(2, "Game lines");
             markdownBuilder.Block("yaml", yamlString);
+            markdownBuilder.Heading(2, "Line Statistics");
+            var statistics = new StringBuilder();
+            var totalLines = 0;
+            foreach (var scriptName in _collection.Scripts)
+            {
+                var scriptLineCount = _collection.GetEntries(scriptName).Count;
+                statistics.AppendLine($"{scriptName}: {scriptLineCount} lines");
+                totalLines += scriptLineCount;
+            }
+            statistics.AppendLine($"Total lines: {totalLines}");
+            markdownBuilder.Block("text", statistics.ToString());
             VndbMarkdownGenerator.CreateFileAsync(markdownBuilder.ToString(), Name).Wait();
         }
 

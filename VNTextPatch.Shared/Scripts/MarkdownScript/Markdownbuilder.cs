@@ -80,8 +80,9 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
         public MarkdownBuilder Block(string lang, string value)
         {
             _sb.AppendLine($"```{lang}")
-                .AppendLine(value)
-                .AppendLine("```");
+                .Append(value)
+                .AppendLine("```")
+                .AppendLine();
             return this;
         }
 
@@ -207,6 +208,14 @@ namespace VNTextPatch.Shared.Scripts.MarkdownScript
             );
 
             ListItem("Maintain any spacing in the translation.");
+
+            ListItem(
+                "Pay attention to the number of lines for translation. " + 
+                "Avoid skipping a line or merging 2 or more lines."
+            );
+
+            BlankLine();
         }
+
     }
 }
