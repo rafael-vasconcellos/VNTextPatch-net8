@@ -20,7 +20,7 @@ using VNTextPatch.Shared.Scripts.Yuris;
 
 namespace VNTextPatch.Shared.Scripts
 {
-    public class FolderScriptCollection : IScriptCollection, IScriptCollectionProjectExporter
+    public class FolderScriptCollection : IScriptCollection
     {
         private static readonly IScript[] TemporaryScripts;
 
@@ -137,7 +137,7 @@ namespace VNTextPatch.Shared.Scripts
         /// project directory, preserving their relative paths. Existing files
         /// are not overwritten so repeated extraction keeps manual edits.
         /// </summary>
-        public virtual void ExportProjectFiles(string destinationDirectory)
+        protected virtual void ExportProjectFiles(string destinationDirectory)
         {
             if (string.IsNullOrWhiteSpace(destinationDirectory))
                 throw new ArgumentException(

@@ -11,7 +11,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
     /// Folder collection for YU-RIS games. The YSTL index maps logical script
     /// paths to physical ystXXXXX.ybn files; callers only see the logical paths.
     /// </summary>
-    public sealed class YurisFolderScriptCollection : FolderScriptCollection
+    public sealed class YurisFolderScriptCollection : FolderScriptCollection, IScriptCollectionProjectExporter
     {
         private const string IndexFileName = "yst_list.ybn";
 
@@ -161,7 +161,7 @@ namespace VNTextPatch.Shared.Scripts.Yuris
         /// logical .yst name, while ysbin contains the index and command table.
         /// Existing destination files are preserved to avoid overwriting edits.
         /// </summary>
-        public override void ExportProjectFiles(string destinationDirectory)
+        public new void ExportProjectFiles(string destinationDirectory)
         {
             base.ExportProjectFiles(destinationDirectory);
 

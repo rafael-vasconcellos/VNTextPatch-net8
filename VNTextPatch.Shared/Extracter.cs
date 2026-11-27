@@ -100,7 +100,7 @@ namespace VNTextPatch.Shared
             }
 
             // Engine-specific project files are exported through an optional
-            // collection capability. The extractor remains unaware of YU-RIS.
+            // collection capability. The extractor remains unaware of them.
             if (_inputCollection is IScriptCollectionProjectExporter projectExporter)
             {
                 projectExporter.ExportProjectFiles(_textCollection.Name);
