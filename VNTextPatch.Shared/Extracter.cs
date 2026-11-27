@@ -79,6 +79,7 @@ namespace VNTextPatch.Shared
 
         public void ExtractAll()
         {
+            Logger.LogInformation("Extracting to local path");
             foreach (string inputScriptName in _inputCollection.Scripts)
             {
 
